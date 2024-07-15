@@ -9,15 +9,15 @@
 
 namespace BSerializer {
     namespace details {
-        __forceinline uint8_t toFromBigEndian(uint8_t value);
-        __forceinline uint16_t toFromBigEndian(uint16_t value);
-        __forceinline uint32_t toFromBigEndian(uint32_t value);
-        __forceinline uint64_t toFromBigEndian(uint64_t value);
+        __forceinline uint8_t toFromLittleEndian(uint8_t value);
+        __forceinline uint16_t toFromLittleEndian(uint16_t value);
+        __forceinline uint32_t toFromLittleEndian(uint32_t value);
+        __forceinline uint64_t toFromLittleEndian(uint64_t value);
 
-        __forceinline int8_t toFromBigEndian(int8_t value);
-        __forceinline int16_t toFromBigEndian(int16_t value);
-        __forceinline int32_t toFromBigEndian(int32_t value);
-        __forceinline int64_t toFromBigEndian(int64_t value);
+        __forceinline int8_t toFromLittleEndian(int8_t value);
+        __forceinline int16_t toFromLittleEndian(int16_t value);
+        __forceinline int32_t toFromLittleEndian(int32_t value);
+        __forceinline int64_t toFromLittleEndian(int64_t value);
 
         template <typename _T>
         __forceinline void addRef(_T& Ref, _T Val);
@@ -116,17 +116,17 @@ namespace BSerializer {
     __forceinline _T Deserialize(const void*& Data);
 }
 
-__forceinline uint8_t BSerializer::details::toFromBigEndian(uint8_t value) {
+__forceinline uint8_t BSerializer::details::toFromLittleEndian(uint8_t value) {
     return value;
 }
-__forceinline uint16_t BSerializer::details::toFromBigEndian(uint16_t value) {
-    if (std::endian::native == std::endian::little) {
+__forceinline uint16_t BSerializer::details::toFromLittleEndian(uint16_t value) {
+    if (std::endian::native == std::endian::big) {
         return (value << 8) | (value >> 8);
     }
     return value;
 }
-__forceinline uint32_t BSerializer::details::toFromBigEndian(uint32_t value) {
-    if (std::endian::native == std::endian::little) {
+__forceinline uint32_t BSerializer::details::toFromLittleEndian(uint32_t value) {
+    if (std::endian::native == std::endian::big) {
         return
             ((value << 24) & 0xFF000000) |
             ((value << 8) & 0x00FF0000) |
@@ -135,8 +135,8 @@ __forceinline uint32_t BSerializer::details::toFromBigEndian(uint32_t value) {
     }
     return value;
 }
-__forceinline uint64_t BSerializer::details::toFromBigEndian(uint64_t value) {
-    if (std::endian::native == std::endian::little) {
+__forceinline uint64_t BSerializer::details::toFromLittleEndian(uint64_t value) {
+    if (std::endian::native == std::endian::big) {
         return
             ((value << 56) & 0xFF00000000000000) |
             ((value << 40) & 0x00FF000000000000) |
@@ -149,17 +149,17 @@ __forceinline uint64_t BSerializer::details::toFromBigEndian(uint64_t value) {
     }
     return value;
 }
-__forceinline int8_t BSerializer::details::toFromBigEndian(int8_t value) {
+__forceinline int8_t BSerializer::details::toFromLittleEndian(int8_t value) {
     return value;
 }
-__forceinline int16_t BSerializer::details::toFromBigEndian(int16_t value) {
-    return (int16_t)toFromBigEndian((uint16_t)value);
+__forceinline int16_t BSerializer::details::toFromLittleEndian(int16_t value) {
+    return (int16_t)toFromLittleEndian((uint16_t)value);
 }
-__forceinline int32_t BSerializer::details::toFromBigEndian(int32_t value) {
-    return (int32_t)toFromBigEndian((uint32_t)value);
+__forceinline int32_t BSerializer::details::toFromLittleEndian(int32_t value) {
+    return (int32_t)toFromLittleEndian((uint32_t)value);
 }
-__forceinline int64_t BSerializer::details::toFromBigEndian(int64_t value) {
-    return (int64_t)toFromBigEndian((uint64_t)value);
+__forceinline int64_t BSerializer::details::toFromLittleEndian(int64_t value) {
+    return (int64_t)toFromLittleEndian((uint64_t)value);
 }
 template <typename _T>
 __forceinline void BSerializer::details::addRef(_T& Ref, _T Val) {
@@ -219,10 +219,10 @@ __forceinline void BSerializer::Serialize(const _T& Value, void*& Data) {
             Serialize(v, Data);
             ++len;
         }
-        *lenLoc = len;
+        *lenLoc = details::toFromLittleEndian(len);
     }
     else if constexpr (std::integral<_T>) {
-        _T v2 = details::toFromBigEndian(Value);
+        _T v2 = details::toFromLittleEndian(Value);
         memcpy(Data, &v2, sizeof(_T));
         Data = ((_T*)Data + 1);
     }
@@ -248,7 +248,7 @@ __forceinline _T BSerializer::Deserialize(const void*& Data) {
         return _T::Deserialize(Data);
     }
     else if constexpr (details::Iterable<_T>) {
-        size_t len = *(size_t*)Data;
+        size_t len = details::toFromLittleEndian(*(size_t*)Data);
         _T collection;
         if constexpr (details::HasCapacity<_T>) {
             collection.reserve(len);
@@ -267,7 +267,7 @@ __forceinline _T BSerializer::Deserialize(const void*& Data) {
         return collection;
     }
     else if constexpr (std::integral<_T>) {
-        _T v = details::toFromBigEndian(*(_T*)Data);
+        _T v = details::toFromLittleEndian(*(_T*)Data);
         Data = ((_T*)Data) + 1;
         return v;
     }
