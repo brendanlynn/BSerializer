@@ -4,9 +4,9 @@
 
 namespace BSerializer {
     template <typename _T>
-    concept Serializable = requires(const _T Obj_C, const void* const Data_CC, void* const Data_CV) {
+    concept Serializable = requires(const _T Obj_C, const void* Data_C, void* Data_V) {
         { Obj_C.SerializedSize() } -> std::same_as<size_t>;
-        { Obj_C.Serialize(Data_CV) } -> std::same_as<void>;
-        { _T::Deserialize(Data_CC) } -> std::convertible_to<_T>;
+        { Obj_C.Serialize(Data_V) } -> std::same_as<void>;
+        { _T::Deserialize(Data_C) } -> std::convertible_to<_T>;
     };
 }
