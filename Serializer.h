@@ -98,22 +98,22 @@ namespace BSerializer {
 
         template <typename _TFirst>
         struct tupleDeserializer<std::tuple<_TFirst>> final {
-            static std::tuple<_TFirst> DeserializeTuple(const void*& Data);
+            __forceinline static std::tuple<_TFirst> DeserializeTuple(const void*& Data);
         };
 
         template <typename _TFirst, typename... _TsAll>
         struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final {
-            static std::tuple<_TFirst, _TsAll...> DeserializeTuple(const void*& Data);
+            __forceinline static std::tuple<_TFirst, _TsAll...> DeserializeTuple(const void*& Data);
         };
 
         constexpr char typeNotImplemented[34] = "_T is not of an implemented type.";
     }
     template <typename _T>
-    size_t SerializedSize(const _T& Value);
+    __forceinline size_t SerializedSize(const _T& Value);
     template <typename _T>
-    void Serialize(const _T& Value, void*& Data);
+    __forceinline void Serialize(const _T& Value, void*& Data);
     template <typename _T>
-    _T Deserialize(const void*& Data);
+    __forceinline _T Deserialize(const void*& Data);
 }
 
 __forceinline uint8_t BSerializer::details::toFromBigEndian(uint8_t value) {
@@ -166,18 +166,18 @@ __forceinline void BSerializer::details::addRef(_T& Ref, _T Val) {
     Ref += Val;
 }
 template <typename _TFirst>
-std::tuple<_TFirst> BSerializer::details::tupleDeserializer<std::tuple<_TFirst>>::DeserializeTuple(const void*& Data) {
+__forceinline std::tuple<_TFirst> BSerializer::details::tupleDeserializer<std::tuple<_TFirst>>::DeserializeTuple(const void*& Data) {
     return std::make_tuple(Deserialize<_TFirst>(Data));
 }
 template <typename _TFirst, typename... _TsAll>
-std::tuple<_TFirst, _TsAll...> BSerializer::details::tupleDeserializer<std::tuple<_TFirst, _TsAll...>>::DeserializeTuple(const void*& Data) {
+__forceinline std::tuple<_TFirst, _TsAll...> BSerializer::details::tupleDeserializer<std::tuple<_TFirst, _TsAll...>>::DeserializeTuple(const void*& Data) {
     auto t1 = std::make_tuple(Deserialize<_TFirst>(Data));
     auto t2 = tupleDeserializer<std::tuple<_TsAll...>>::DeserializeTuple(Data);
     return std::tuple_cat(t1, t2);
 }
 
 template <typename _T>
-size_t BSerializer::SerializedSize(const _T& Value) {
+__forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     if constexpr (Serializable<_T>) {
         return Value.SerializedSize();
     }
@@ -207,7 +207,7 @@ size_t BSerializer::SerializedSize(const _T& Value) {
 }
 
 template <typename _T>
-void BSerializer::Serialize(const _T& Value, void*& Data) {
+__forceinline void BSerializer::Serialize(const _T& Value, void*& Data) {
     if constexpr (Serializable<_T>) {
         Value.Serialize(Data);
     }
@@ -243,7 +243,7 @@ void BSerializer::Serialize(const _T& Value, void*& Data) {
 }
 
 template <typename _T>
-_T BSerializer::Deserialize(const void*& Data) {
+__forceinline _T BSerializer::Deserialize(const void*& Data) {
     if constexpr (Serializable<_T>) {
         return _T::Deserialize(Data);
     }
