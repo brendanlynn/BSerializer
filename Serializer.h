@@ -114,6 +114,18 @@ namespace BSerializer {
     __forceinline void Serialize(void*& Data, const _T& Value);
     template <typename _T>
     __forceinline _T Deserialize(const void*& Data);
+    template <typename _T>
+    __forceinline size_t SerializedArraySize(_T* Lower, _T* Upper);
+    template <typename _T>
+    __forceinline size_t SerializedArraySize(_T* Array, size_t Length);
+    template <typename _T>
+    __forceinline void SerializeArray(void*& Data, _T* Lower, _T* Upper);
+    template <typename _T>
+    __forceinline void SerializeArray(void*& Data, _T* Array, size_t Length);
+    template <typename _T>
+    __forceinline void DeserializeArray(const void*& Data, _T* Lower, _T* Upper);
+    template <typename _T>
+    __forceinline void DeserializeArray(const void*& Data, _T* Array, size_t Length);
 }
 
 __forceinline uint8_t BSerializer::details::toFromLittleEndian(uint8_t value) {
@@ -289,4 +301,36 @@ __forceinline _T BSerializer::Deserialize(const void*& Data) {
         return details::tupleDeserializer<_T>::DeserializeTuple(Data);
     }
     else throw std::exception(details::typeNotImplemented);
+}
+
+template <typename _T>
+__forceinline size_t BSerializer::SerializedArraySize(_T* Lower, _T* Upper) {
+    size_t t = 0;
+    for (; Lower < Upper; ++Lower) t += SerializedSize(*Lower);
+    return t;
+}
+
+template <typename _T>
+__forceinline size_t BSerializer::SerializedArraySize(_T* Array, size_t Length) {
+    return SerializedArraySize(Array, Array + Length);
+}
+
+template <typename _T>
+__forceinline void BSerializer::SerializeArray(void*& Data, _T* Lower, _T* Upper) {
+    for (; Lower < Upper; ++Lower) Serialize(Data, *Lower);
+}
+
+template <typename _T>
+__forceinline void BSerializer::SerializeArray(void*& Data, _T* Array, size_t Length) {
+    SerializeArray(Data, Array, Array + Length);
+}
+
+template <typename _T>
+__forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Lower, _T* Upper) {
+    for (; Lower < Upper; ++Lower) *Lower = Deserialize<_T>(Data);
+}
+
+template <typename _T>
+__forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Array, size_t Length) {
+    DeserializeArray(Data, Array, Array + Length);
 }
