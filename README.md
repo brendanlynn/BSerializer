@@ -1,2 +1,2 @@
 # BSerializer
-A library for simple serialization.
+A library for simple C++ binary serialization.
