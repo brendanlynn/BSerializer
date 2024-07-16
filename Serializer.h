@@ -114,6 +114,7 @@ namespace BSerializer {
     __forceinline void Serialize(void*& Data, const _T& Value);
     template <typename _T>
     __forceinline _T Deserialize(const void*& Data);
+
     template <typename _T>
     __forceinline size_t SerializedArraySize(_T* Lower, _T* Upper);
     template <typename _T>
@@ -126,6 +127,19 @@ namespace BSerializer {
     __forceinline void DeserializeArray(const void*& Data, _T* Lower, _T* Upper);
     template <typename _T>
     __forceinline void DeserializeArray(const void*& Data, _T* Array, size_t Length);
+
+    template <typename _T>
+    __forceinline size_t SerializedRawSize(const _T& Value);
+    template <typename _T>
+    __forceinline void SerializeRaw(void*& Data, const _T& Value);
+    template <typename _T>
+    __forceinline _T DeserializeRaw(const void*& Data);
+
+    __forceinline size_t SerializedRawSize(const void* Lower, const void* Upper);
+    __forceinline void SerializeRaw(void*& Data, const void* Lower, const void* Upper);
+    __forceinline void SerializeRaw(void*& Data, const void* Lower, size_t Length);
+    __forceinline void DeserializeRaw(const void*& Data, void* Lower, void* Upper);
+    __forceinline void DeserializeRaw(const void*& Data, void* Lower, size_t Length);
 }
 
 __forceinline uint8_t BSerializer::details::toFromLittleEndian(uint8_t value) {
@@ -333,4 +347,43 @@ __forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Lower, _
 template <typename _T>
 __forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Array, size_t Length) {
     DeserializeArray(Data, Array, Array + Length);
+}
+
+template <typename _T>
+__forceinline size_t BSerializer::SerializedRawSize(const _T& Value) {
+    return sizeof(_T);
+}
+
+template <typename _T>
+__forceinline void BSerializer::SerializeRaw(void*& Data, const _T& Value) {
+    SerializeRaw(Data, &Value, sizeof(_T));
+}
+
+template <typename _T>
+__forceinline _T BSerializer::DeserializeRaw(const void*& Data) {
+    uint8_t bytes[sizeof(_T)];
+    DeserializeRaw(Data, bytes, sizeof(_T));
+    return *(_T*)bytes;
+}
+
+__forceinline size_t BSerializer::SerializedRawSize(const void* Lower, const void* Upper) {
+    return (uint8_t*)Upper - (uint8_t*)Lower;
+}
+
+__forceinline void BSerializer::SerializeRaw(void*& Data, const void* Lower, const void* Upper) {
+    SerializeRaw(Data, Lower, (uint8_t*)Upper - (uint8_t*)Lower);
+}
+
+__forceinline void BSerializer::SerializeRaw(void*& Data, const void* Lower, size_t Length) {
+    memcpy(Data, Lower, Length);
+    Data = ((uint8_t*)Data) + Length;
+}
+
+__forceinline void BSerializer::DeserializeRaw(const void*& Data, void* Lower, void* Upper) {
+    DeserializeRaw(Data, Lower, (uint8_t*)Upper - (uint8_t*)Lower);
+}
+
+__forceinline void BSerializer::DeserializeRaw(const void*& Data, void* Lower, size_t Length) {
+    memcpy(Lower, Data, Length);
+    Data = ((uint8_t*)Data) + Length;
 }
