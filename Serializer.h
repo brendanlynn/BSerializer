@@ -111,7 +111,7 @@ namespace BSerializer {
     template <typename _T>
     __forceinline size_t SerializedSize(const _T& Value);
     template <typename _T>
-    __forceinline void Serialize(const _T& Value, void*& Data);
+    __forceinline void Serialize(void*& Data, const _T& Value);
     template <typename _T>
     __forceinline _T Deserialize(const void*& Data);
 }
@@ -207,7 +207,7 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
 }
 
 template <typename _T>
-__forceinline void BSerializer::Serialize(const _T& Value, void*& Data) {
+__forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     if constexpr (Serializable<_T>) {
         Value.Serialize(Data);
     }
