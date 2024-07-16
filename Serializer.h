@@ -93,18 +93,17 @@ namespace BSerializer {
             using type = tupleTypes<std::tuple<_TsAll...>, _Index - 1>::type;
         };
 
-        template <typename _T>
+        template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
+        struct tupleDeserializer2 {
+            __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
+        };
+
+        template <typename _TTuple>
         struct tupleDeserializer;
 
-        template <typename _TFirst>
-        struct tupleDeserializer<std::tuple<_TFirst>> final {
-            __forceinline static std::tuple<_TFirst> DeserializeTuple(const void*& Data);
-        };
-
         template <typename _TFirst, typename... _TsAll>
-        struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final {
-            __forceinline static std::tuple<_TFirst, _TsAll...> DeserializeTuple(const void*& Data);
-        };
+        struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
+            : tupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
 
         constexpr char typeNotImplemented[34] = "_T is not of an implemented type.";
     }
@@ -114,6 +113,8 @@ namespace BSerializer {
     __forceinline void Serialize(void*& Data, const _T& Value);
     template <typename _T>
     __forceinline _T Deserialize(const void*& Data);
+    template <typename _T>
+    __forceinline void Deserialize(const void*& Data, _T& Value);
 
     template <typename _T>
     __forceinline size_t SerializedArraySize(_T* Lower, _T* Upper);
@@ -134,6 +135,8 @@ namespace BSerializer {
     __forceinline void SerializeRaw(void*& Data, const _T& Value);
     template <typename _T>
     __forceinline _T DeserializeRaw(const void*& Data);
+    template <typename _T>
+    __forceinline void DeserializeRaw(const void*& Data, _T& Value);
 
     __forceinline size_t SerializedRawSize(const void* Lower, const void* Upper);
     __forceinline void SerializeRaw(void*& Data, const void* Lower, const void* Upper);
@@ -191,15 +194,13 @@ template <typename _T>
 __forceinline void BSerializer::details::addRef(_T& Ref, _T Val) {
     Ref += Val;
 }
-template <typename _TFirst>
-__forceinline std::tuple<_TFirst> BSerializer::details::tupleDeserializer<std::tuple<_TFirst>>::DeserializeTuple(const void*& Data) {
-    return std::make_tuple(Deserialize<_TFirst>(Data));
-}
-template <typename _TFirst, typename... _TsAll>
-__forceinline std::tuple<_TFirst, _TsAll...> BSerializer::details::tupleDeserializer<std::tuple<_TFirst, _TsAll...>>::DeserializeTuple(const void*& Data) {
-    auto t1 = std::make_tuple(Deserialize<_TFirst>(Data));
-    auto t2 = tupleDeserializer<std::tuple<_TsAll...>>::DeserializeTuple(Data);
-    return std::tuple_cat(t1, t2);
+template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
+__forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
+    _TFirst& v = std::get<_Index>(Tuple);
+    Deserialize<_TFirst>(Data, v);
+    if constexpr (sizeof...(_TsAll)) {
+        tupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(Data, Tuple);
+    }
 }
 
 template <typename _T>
@@ -242,7 +243,7 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         Data = lenLoc + 1;
         size_t len = 0;
         for (auto& v : Value) {
-            Serialize(v, Data);
+            Serialize(Data, v);
             ++len;
         }
         *lenLoc = details::toFromLittleEndian(len);
@@ -257,12 +258,12 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         Data = ((_T*)Data + 1);
     }
     else if constexpr (details::isPair<_T>::value) {
-        Serialize(Value.first, Data);
-        Serialize(Value.second, Data);
+        Serialize(Data, Value.first);
+        Serialize(Data, Value.second);
     }
     else if constexpr (details::isTuple<_T>::value) {
         std::apply([&Data](const auto&... args) {
-            (Serialize(args, Data), ...);
+            (Serialize(Data, args), ...);
         }, Value);
     }
     else throw std::exception(details::typeNotImplemented);
@@ -270,49 +271,87 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
 
 template <typename _T>
 __forceinline _T BSerializer::Deserialize(const void*& Data) {
+    uint8_t bytes[sizeof(_T)];
+    _T& r = *(_T*)bytes;
+    Deserialize(Data, r);
+    return r;
+}
+
+template <typename _T>
+__forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
     if constexpr (Serializable<_T>) {
-        return _T::Deserialize(Data);
+        _T::Deserialize(Data, Value);
     }
     else if constexpr (details::Iterable<_T>) {
         size_t len = details::toFromLittleEndian(*(size_t*)Data);
-        _T collection;
+        Value = _T();
         if constexpr (details::HasCapacity<_T>) {
-            collection.reserve(len);
+            Value.reserve(len);
         }
         Data = ((size_t*)Data) + 1;
         for (size_t i = 0; i < len; ++i) {
             using v_t = _T::value_type;
-            auto e = Deserialize<v_t>(Data);
-            if constexpr (details::IsMap<_T>) {
-                collection.insert(std::move(e));
+            if constexpr (sizeof(v_t) >> 9) {
+                v_t* p_e = (v_t*)malloc(sizeof(v_t));
+                v_t& e = *p_e;
+                Deserialize<v_t>(Data, e);
+                if constexpr (details::IsMap<_T>) {
+                    Value.insert(std::move(e));
+                }
+                else {
+                    Value.insert(Value.end(), std::move(e));
+                }
             }
             else {
-                collection.insert(collection.end(), std::move(e));
+                v_t e = Deserialize<v_t>(Data);
+                if constexpr (details::IsMap<_T>) {
+                    Value.insert(std::move(e));
+                }
+                else {
+                    Value.insert(Value.end(), std::move(e));
+                }
             }
         }
-        return collection;
     }
     else if constexpr (std::integral<_T>) {
-        _T v = details::toFromLittleEndian(*(_T*)Data);
+        Value = details::toFromLittleEndian(*(_T*)Data);
         Data = ((_T*)Data) + 1;
-        return v;
     }
     else if constexpr (std::floating_point<_T>) {
-        _T v;
-        memcpy(&v, Data, sizeof(_T));
-        Data = ((_T*)Data + 1);
-        return v;
+        memcpy(&Value, Data, sizeof(_T));
+        Data = ((_T*)Data) + 1;
     }
     else if constexpr (details::isPair<_T>::value) {
         using t1_t = details::pairTypes<_T>::t1_t;
         using t2_t = details::pairTypes<_T>::t2_t;
-        return {
-            Deserialize<t1_t>(Data),
-            Deserialize<t2_t>(Data)
-        };
+        if constexpr (sizeof(t1_t) >> 8) {
+            t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
+            t1_t& v1 = *p_v1;
+            if constexpr (sizeof(t2_t) >> 8) {
+                t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
+                t2_t& v2 = *p_v2;
+                Value = _T(v1, v2);
+            }
+            else {
+                t1_t v2 = Deserialize<t1_t>(Data);
+                Value = _T(v1, v2);
+            }
+        }
+        else {
+            t1_t v1 = Deserialize<t1_t>(Data);
+            if constexpr (sizeof(t2_t) >> 8) {
+                t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
+                t2_t& v2 = *p_v2;
+                Value = _T(v1, v2);
+            }
+            else {
+                t1_t v2 = Deserialize<t1_t>(Data);
+                Value = _T(v1, v2);
+            }
+        }
     }
     else if constexpr (details::isTuple<_T>::value) {
-        return details::tupleDeserializer<_T>::DeserializeTuple(Data);
+        details::tupleDeserializer<_T>::DeserializeTuple(Data, Value);
     }
     else throw std::exception(details::typeNotImplemented);
 }
@@ -364,6 +403,11 @@ __forceinline _T BSerializer::DeserializeRaw(const void*& Data) {
     uint8_t bytes[sizeof(_T)];
     DeserializeRaw(Data, bytes, sizeof(_T));
     return *(_T*)bytes;
+}
+
+template <typename _T>
+__forceinline void BSerializer::DeserializeRaw(const void*& Data, _T& Value) {
+    DeserializeRaw(Data, &Value, sizeof(_T));
 }
 
 __forceinline size_t BSerializer::SerializedRawSize(const void* Lower, const void* Upper) {
