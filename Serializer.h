@@ -12,37 +12,6 @@ namespace BSerializer {
         template <typename _T>
         __forceinline void addRef(_T& Ref, _T Val);
 
-        template <typename _T>
-        struct tupleSize;
-
-        template <typename... _TsAll>
-        struct tupleSize<std::tuple<_TsAll...>> final {
-            static constexpr size_t value = sizeof...(_TsAll);
-        };
-
-        template <typename _T, size_t _Index>
-        struct tupleTypes;
-
-        template <typename _TFirst>
-        struct tupleTypes<std::tuple<_TFirst>, 0> final {
-            using type = _TFirst;
-        };
-
-        template <typename _TFirst, size_t _Index>
-        struct tupleTypes<std::tuple<_TFirst>, _Index> final {
-            using type = void;
-        };
-
-        template <typename _TFirst, typename... _TsAll>
-        struct tupleTypes<std::tuple<_TFirst, _TsAll...>, 0> final {
-            using type = _TFirst;
-        };
-
-        template <typename _TFirst, typename... _TsAll, size_t _Index>
-        struct tupleTypes<std::tuple<_TFirst, _TsAll...>, _Index> final {
-            using type = tupleTypes<std::tuple<_TsAll...>, _Index - 1>::type;
-        };
-
         template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
         struct tupleDeserializer2 {
             __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
