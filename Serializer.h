@@ -289,7 +289,7 @@ __forceinline void BSerializer::ToFromLittleEndian(int64_t* Array, size_t Length
 }
 template <typename _T>
 __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
-    if constexpr (Serializable<_T>) {
+    if constexpr (InBuiltSerializable<_T>) {
         return Value.SerializedSize();
     }
     else if constexpr (details::Iterable<_T>) {
@@ -319,7 +319,7 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
 
 template <typename _T>
 __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
-    if constexpr (Serializable<_T>) {
+    if constexpr (InBuiltSerializable<_T>) {
         Value.Serialize(Data);
     }
     else if constexpr (details::Iterable<_T>) {
@@ -363,7 +363,7 @@ __forceinline _T BSerializer::Deserialize(const void*& Data) {
 
 template <typename _T>
 __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
-    if constexpr (Serializable<_T>) {
+    if constexpr (InBuiltSerializable<_T>) {
         _T::Deserialize(Data, Value);
     }
     else if constexpr (details::Iterable<_T>) {
