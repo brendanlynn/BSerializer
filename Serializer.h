@@ -353,11 +353,13 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
                 Value = _T(v1, v2);
+                free(p_v2);
             }
             else {
                 t2_t v2 = Deserialize<t2_t>(Data);
                 Value = _T(v1, v2);
             }
+            free(p_v1);
         }
         else {
             t1_t v1 = Deserialize<t1_t>(Data);
@@ -365,6 +367,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
                 Value = _T(v1, v2);
+                free(p_v2);
             }
             else {
                 t2_t v2 = Deserialize<t2_t>(Data);
