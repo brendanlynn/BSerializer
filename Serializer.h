@@ -127,26 +127,26 @@ namespace BSerializer {
     __forceinline void ToFromLittleEndian(int32_t* Array, size_t Length);
     __forceinline void ToFromLittleEndian(int64_t* Array, size_t Length);
 
-    template <typename _T>
+    template <Serializable _T>
     __forceinline size_t SerializedSize(const _T& Value);
-    template <typename _T>
+    template <Serializable _T>
     __forceinline void Serialize(void*& Data, const _T& Value);
-    template <typename _T>
+    template <Serializable _T>
     __forceinline _T Deserialize(const void*& Data);
-    template <typename _T>
+    template <Serializable _T>
     __forceinline void Deserialize(const void*& Data, _T& Value);
 
-    template <typename _T>
-    __forceinline size_t SerializedArraySize(_T* Lower, _T* Upper);
-    template <typename _T>
-    __forceinline size_t SerializedArraySize(_T* Array, size_t Length);
-    template <typename _T>
-    __forceinline void SerializeArray(void*& Data, _T* Lower, _T* Upper);
-    template <typename _T>
-    __forceinline void SerializeArray(void*& Data, _T* Array, size_t Length);
-    template <typename _T>
+    template <Serializable _T>
+    __forceinline size_t SerializedArraySize(const _T* Lower, const _T* Upper);
+    template <Serializable _T>
+    __forceinline size_t SerializedArraySize(const _T* Array, size_t Length);
+    template <Serializable _T>
+    __forceinline void SerializeArray(void*& Data, const _T* Lower, const _T* Upper);
+    template <Serializable _T>
+    __forceinline void SerializeArray(void*& Data, const _T* Array, size_t Length);
+    template <Serializable _T>
     __forceinline void DeserializeArray(const void*& Data, _T* Lower, _T* Upper);
-    template <typename _T>
+    template <Serializable _T>
     __forceinline void DeserializeArray(const void*& Data, _T* Array, size_t Length);
 
     template <typename _T>
@@ -287,7 +287,7 @@ __forceinline void BSerializer::ToFromLittleEndian(int32_t* Array, size_t Length
 __forceinline void BSerializer::ToFromLittleEndian(int64_t* Array, size_t Length) {
     ToFromLittleEndian(Array, Array + Length);
 }
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         return Value.SerializedSize();
@@ -317,7 +317,7 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     else throw std::exception(details::typeNotImplemented);
 }
 
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         Value.Serialize(Data);
@@ -353,7 +353,7 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     else throw std::exception(details::typeNotImplemented);
 }
 
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline _T BSerializer::Deserialize(const void*& Data) {
     uint8_t bytes[sizeof(_T)];
     _T& r = *(_T*)bytes;
@@ -361,7 +361,7 @@ __forceinline _T BSerializer::Deserialize(const void*& Data) {
     return r;
 }
 
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         _T::Deserialize(Data, Value);
@@ -440,34 +440,34 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
     else throw std::exception(details::typeNotImplemented);
 }
 
-template <typename _T>
-__forceinline size_t BSerializer::SerializedArraySize(_T* Lower, _T* Upper) {
+template <BSerializer::Serializable _T>
+__forceinline size_t BSerializer::SerializedArraySize(const _T* Lower, const _T* Upper) {
     size_t t = 0;
     for (; Lower < Upper; ++Lower) t += SerializedSize(*Lower);
     return t;
 }
 
-template <typename _T>
-__forceinline size_t BSerializer::SerializedArraySize(_T* Array, size_t Length) {
+template <BSerializer::Serializable _T>
+__forceinline size_t BSerializer::SerializedArraySize(const _T* Array, size_t Length) {
     return SerializedArraySize(Array, Array + Length);
 }
 
-template <typename _T>
-__forceinline void BSerializer::SerializeArray(void*& Data, _T* Lower, _T* Upper) {
+template <BSerializer::Serializable _T>
+__forceinline void BSerializer::SerializeArray(void*& Data, const _T* Lower, const _T* Upper) {
     for (; Lower < Upper; ++Lower) Serialize(Data, *Lower);
 }
 
-template <typename _T>
-__forceinline void BSerializer::SerializeArray(void*& Data, _T* Array, size_t Length) {
+template <BSerializer::Serializable _T>
+__forceinline void BSerializer::SerializeArray(void*& Data, const _T* Array, size_t Length) {
     SerializeArray(Data, Array, Array + Length);
 }
 
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Lower, _T* Upper) {
     for (; Lower < Upper; ++Lower) *Lower = Deserialize<_T>(Data);
 }
 
-template <typename _T>
+template <BSerializer::Serializable _T>
 __forceinline void BSerializer::DeserializeArray(const void*& Data, _T* Array, size_t Length) {
     DeserializeArray(Data, Array, Array + Length);
 }
