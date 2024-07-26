@@ -23,8 +23,6 @@ namespace BSerializer {
         template <typename _TFirst, typename... _TsAll>
         struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
             : tupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
-
-        constexpr char typeNotImplemented[34] = "_T is not of an implemented type.";
     }
     __forceinline uint8_t ToFromLittleEndian(uint8_t Value);
     __forceinline uint16_t ToFromLittleEndian(uint16_t Value);
@@ -243,7 +241,6 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         }, Value);
         return t;
     }
-    else throw std::exception(details::typeNotImplemented);
 }
 
 template <BSerializer::Serializable _T>
@@ -279,7 +276,6 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
             (Serialize(Data, args), ...);
         }, Value);
     }
-    else throw std::exception(details::typeNotImplemented);
 }
 
 template <BSerializer::Serializable _T>
@@ -347,7 +343,6 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
     else if constexpr (SerializableStdTuple<_T>) {
         details::tupleDeserializer<_T>::DeserializeTuple(Data, Value);
     }
-    else throw std::exception(details::typeNotImplemented);
 }
 
 template <BSerializer::Serializable _T>
