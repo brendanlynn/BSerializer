@@ -13,46 +13,6 @@ namespace BSerializer {
         __forceinline void addRef(_T& Ref, _T Val);
 
         template <typename _T>
-        concept Iterable = requires(_T t) {
-            { t.begin() } -> std::input_iterator;
-            { t.end() } -> std::input_iterator;
-        };
-
-        template <typename _T>
-        concept HasCapacity = requires(_T t, typename _T::size_type n) {
-            { t.reserve(n) };
-        };
-
-        template <typename _T>
-        concept IsMap = requires(_T t) {
-            typename _T::key_type;
-            typename _T::mapped_type;
-            { t.begin()->first };
-            { t.begin()->second };
-        };
-
-        template <typename _T>
-        struct isPair final : std::false_type { };
-
-        template <typename _T1, typename _T2>
-        struct isPair<std::pair<_T1, _T2>> final : std::true_type { };
-
-        template <typename _T>
-        struct pairTypes;
-            
-        template <typename _T1, typename _T2>
-        struct pairTypes<std::pair<_T1, _T2>> final {
-            using t1_t = _T1;
-            using t2_t = _T2;
-        };
-
-        template <typename _T>
-        struct isTuple final : std::false_type { };
-
-        template <typename... _TsAll>
-        struct isTuple<std::tuple<_TsAll...>> final : std::true_type { };
-
-        template <typename _T>
         struct tupleSize;
 
         template <typename... _TsAll>
@@ -292,22 +252,22 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         return Value.SerializedSize();
     }
-    else if constexpr (details::Iterable<_T>) {
+    else if constexpr (SerializableCollection<_T>) {
         size_t t = sizeof(size_t);
         for (auto& v : Value) {
             t += SerializedSize(v);
         }
         return t;
     }
-    else if constexpr (std::integral<_T> || std::floating_point<_T>) {
+    else if constexpr (Arithmetic<_T>) {
         return sizeof(_T);
     }
-    else if constexpr (details::isPair<_T>::value) {
+    else if constexpr (SerializableStdPair<_T>) {
         return
             SerializedSize(Value.first) +
             SerializedSize(Value.second);
     }
-    else if constexpr (details::isTuple<_T>::value) {
+    else if constexpr (SerializableStdTuple<_T>) {
         size_t t = 0;
         std::apply([&t](const auto&... args) {
             (details::addRef(t, SerializedSize(args)), ...);
@@ -322,7 +282,7 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         Value.Serialize(Data);
     }
-    else if constexpr (details::Iterable<_T>) {
+    else if constexpr (SerializableCollection<_T>) {
         size_t* lenLoc = (size_t*)Data;
         Data = lenLoc + 1;
         size_t len = 0;
@@ -341,11 +301,11 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         memcpy(Data, &Value, sizeof(_T));
         Data = ((_T*)Data + 1);
     }
-    else if constexpr (details::isPair<_T>::value) {
+    else if constexpr (SerializableStdPair<_T>) {
         Serialize(Data, Value.first);
         Serialize(Data, Value.second);
     }
-    else if constexpr (details::isTuple<_T>::value) {
+    else if constexpr (SerializableStdTuple<_T>) {
         std::apply([&Data](const auto&... args) {
             (Serialize(Data, args), ...);
         }, Value);
@@ -366,36 +326,14 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
     if constexpr (InBuiltSerializable<_T>) {
         _T::Deserialize(Data, Value);
     }
-    else if constexpr (details::Iterable<_T>) {
-        size_t len = ToFromLittleEndian(*(size_t*)Data);
-        Value = _T();
-        if constexpr (details::HasCapacity<_T>) {
-            Value.reserve(len);
-        }
-        Data = ((size_t*)Data) + 1;
-        for (size_t i = 0; i < len; ++i) {
-            using v_t = _T::value_type;
-            if constexpr (sizeof(v_t) >> 9) {
-                v_t* p_e = (v_t*)malloc(sizeof(v_t));
-                v_t& e = *p_e;
-                Deserialize<v_t>(Data, e);
-                if constexpr (details::IsMap<_T>) {
-                    Value.insert(std::move(e));
-                }
-                else {
-                    Value.insert(Value.end(), std::move(e));
-                }
-            }
-            else {
-                v_t e = Deserialize<v_t>(Data);
-                if constexpr (details::IsMap<_T>) {
-                    Value.insert(std::move(e));
-                }
-                else {
-                    Value.insert(Value.end(), std::move(e));
-                }
-            }
-        }
+    else if constexpr (SerializableCollection<_T>) {
+        using value_t = typename _T::value_type;
+        size_t len = Deserialize<size_t>(Data);
+        value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
+        value_t* b = arr + len;
+        for (value_t* i = arr; i < b; ++i) Deserialize(Data, *i);
+        Value = _T{ arr, arr + len };
+        free(arr);
     }
     else if constexpr (std::integral<_T>) {
         Value = ToFromLittleEndian(*(_T*)Data);
@@ -405,9 +343,9 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         memcpy(&Value, Data, sizeof(_T));
         Data = ((_T*)Data) + 1;
     }
-    else if constexpr (details::isPair<_T>::value) {
-        using t1_t = details::pairTypes<_T>::t1_t;
-        using t2_t = details::pairTypes<_T>::t2_t;
+    else if constexpr (SerializableStdPair<_T>) {
+        using t1_t = _T::first_type;
+        using t2_t = _T::second_type;
         if constexpr (sizeof(t1_t) >> 8) {
             t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
             t1_t& v1 = *p_v1;
@@ -417,7 +355,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
                 Value = _T(v1, v2);
             }
             else {
-                t1_t v2 = Deserialize<t1_t>(Data);
+                t2_t v2 = Deserialize<t2_t>(Data);
                 Value = _T(v1, v2);
             }
         }
@@ -429,12 +367,12 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
                 Value = _T(v1, v2);
             }
             else {
-                t1_t v2 = Deserialize<t1_t>(Data);
+                t2_t v2 = Deserialize<t2_t>(Data);
                 Value = _T(v1, v2);
             }
         }
     }
-    else if constexpr (details::isTuple<_T>::value) {
+    else if constexpr (SerializableStdTuple<_T>) {
         details::tupleDeserializer<_T>::DeserializeTuple(Data, Value);
     }
     else throw std::exception(details::typeNotImplemented);
