@@ -44,7 +44,9 @@ namespace BSerializer {
     template <Serializable _T>
     __forceinline _T Deserialize(const void*& Data);
     template <Serializable _T>
-    __forceinline void Deserialize(const void*& Data, _T& Value);
+    __forceinline void Deserialize(const void*& Data, _T* Value);
+    template <Serializable _T>
+    __forceinline void Deserialize(const void*& Data, void* Value);
 
     template <Serializable _T>
     __forceinline size_t SerializedArraySize(const _T* Lower, const _T* Upper);
@@ -87,7 +89,7 @@ __forceinline void BSerializer::details::byteSwap(_T& Bytes) {
 template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
 __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
     _TFirst& v = std::get<_Index>(Tuple);
-    Deserialize<_TFirst>(Data, v);
+    Deserialize<_TFirst>(Data, &v);
     if constexpr (sizeof...(_TsAll)) {
         tupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(Data, Tuple);
     }
@@ -178,12 +180,17 @@ template <BSerializer::Serializable _T>
 __forceinline _T BSerializer::Deserialize(const void*& Data) {
     uint8_t bytes[sizeof(_T)];
     _T& r = *(_T*)bytes;
-    Deserialize(Data, r);
+    Deserialize(Data, &r);
     return r;
 }
 
 template <BSerializer::Serializable _T>
-__forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
+__forceinline void BSerializer::Deserialize(const void*& Data, _T* Value) {
+    Deserialize<_T>(Data, *(void**)&Value);
+}
+
+template <BSerializer::Serializable _T>
+__forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     if constexpr (InBuiltSerializable<_T>) {
         _T::Deserialize(Data, Value);
     }
@@ -192,12 +199,12 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         size_t len = Deserialize<size_t>(Data);
         value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
         value_t* b = arr + len;
-        for (value_t* i = arr; i < b; ++i) Deserialize(Data, *i);
-        Value = _T{ arr, arr + len };
+        for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
+        new (Value) _T{ arr, arr + len };
         free(arr);
     }
     else if constexpr (Arithmetic<_T>) {
-        Value = ToFromLittleEndian(*(_T*)Data);
+        new (Value) _T (ToFromLittleEndian(*(_T*)Data));
         Data = ((_T*)Data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {
@@ -206,17 +213,17 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         if constexpr (sizeof(t1_t) >> 8) {
             t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
             t1_t& v1 = *p_v1;
-            Deserialize(Data, v1);
+            Deserialize(Data, p_v1);
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
-                Deserialize(Data, v2);
-                Value = _T(v1, v2);
+                Deserialize(Data, p_v2);
+                new (Value) _T(v1, v2);
                 free(p_v2);
             }
             else {
                 t2_t v2 = Deserialize<t2_t>(Data);
-                Value = _T(v1, v2);
+                new (Value) _T(v1, v2);
             }
             free(p_v1);
         }
@@ -225,18 +232,18 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
-                Deserialize(Data, v2);
-                Value = _T(v1, v2);
+                Deserialize(Data, p_v2);
+                new (Value) _T(v1, v2);
                 free(p_v2);
             }
             else {
                 t2_t v2 = Deserialize<t2_t>(Data);
-                Value = _T(v1, v2);
+                new (Value) _T(v1, v2);
             }
         }
     }
     else if constexpr (SerializableStdTuple<_T>) {
-        details::DeserializeTuple(Data, Value);
+        details::DeserializeTuple(Data, *(_T*)Value);
     }
 }
 

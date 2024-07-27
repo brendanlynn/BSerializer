@@ -13,9 +13,9 @@ namespace BSerializer {
             { Obj.Serialize(Data) } -> std::same_as<void>;
         };
 
-        requires requires (const void* Data, _T Obj) {
+        requires requires (const void* Data, void* const ObjMem) {
             { _T::Deserialize(Data) } -> std::same_as<_T>;
-            { _T::Deserialize(Data, Obj) } -> std::same_as<void>;
+            { _T::Deserialize(Data, ObjMem) } -> std::same_as<void>;
         };
     };
 
