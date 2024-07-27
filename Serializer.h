@@ -314,9 +314,11 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         if constexpr (sizeof(t1_t) >> 8) {
             t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
             t1_t& v1 = *p_v1;
+            Deserialize(Data, v1);
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
+                Deserialize(Data, v2);
                 Value = _T(v1, v2);
                 free(p_v2);
             }
@@ -331,6 +333,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
+                Deserialize(Data, v2);
                 Value = _T(v1, v2);
                 free(p_v2);
             }
