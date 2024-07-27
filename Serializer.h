@@ -118,8 +118,8 @@ __forceinline uint32_t BSerializer::ToFromLittleEndian(uint32_t Value) {
     if (std::endian::native == std::endian::big) {
         return
             ((Value << 24) & 0xFF000000) |
-            ((Value << 8) & 0x00FF0000) |
-            ((Value >> 8) & 0x0000FF00) |
+            ((Value <<  8) & 0x00FF0000) |
+            ((Value >>  8) & 0x0000FF00) |
             ((Value >> 24) & 0x000000FF);
     }
     return Value;
@@ -130,8 +130,8 @@ __forceinline uint64_t BSerializer::ToFromLittleEndian(uint64_t Value) {
             ((Value << 56) & 0xFF00000000000000) |
             ((Value << 40) & 0x00FF000000000000) |
             ((Value << 24) & 0x0000FF0000000000) |
-            ((Value << 8) & 0x000000FF00000000) |
-            ((Value >> 8) & 0x00000000FF000000) |
+            ((Value <<  8) & 0x000000FF00000000) |
+            ((Value >>  8) & 0x00000000FF000000) |
             ((Value >> 24) & 0x0000000000FF0000) |
             ((Value >> 40) & 0x000000000000FF00) |
             ((Value >> 56) & 0x00000000000000FF);
