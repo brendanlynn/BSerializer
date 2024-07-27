@@ -158,13 +158,9 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         }
         *lenLoc = ToFromLittleEndian(len);
     }
-    else if constexpr (std::integral<_T>) {
+    else if constexpr (Arithmetic<_T>) {
         _T v2 = ToFromLittleEndian(Value);
         memcpy(Data, &v2, sizeof(_T));
-        Data = ((_T*)Data + 1);
-    }
-    else if constexpr (std::floating_point<_T>) {
-        memcpy(Data, &Value, sizeof(_T));
         Data = ((_T*)Data + 1);
     }
     else if constexpr (SerializableStdPair<_T>) {
@@ -200,12 +196,8 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         Value = _T{ arr, arr + len };
         free(arr);
     }
-    else if constexpr (std::integral<_T>) {
+    else if constexpr (Arithmetic<_T>) {
         Value = ToFromLittleEndian(*(_T*)Data);
-        Data = ((_T*)Data) + 1;
-    }
-    else if constexpr (std::floating_point<_T>) {
-        memcpy(&Value, Data, sizeof(_T));
         Data = ((_T*)Data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {
