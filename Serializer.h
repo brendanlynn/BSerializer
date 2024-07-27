@@ -26,6 +26,9 @@ namespace BSerializer {
         template <typename _TFirst, typename... _TsAll>
         struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
             : tupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
+
+        template <typename _TTuple>
+        __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
     }
     template <typename _T>
     __forceinline _T ToFromLittleEndian(_T Value);
@@ -88,6 +91,10 @@ __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TF
     if constexpr (sizeof...(_TsAll)) {
         tupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(Data, Tuple);
     }
+}
+template <typename _TTuple>
+__forceinline static void BSerializer::details::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
+    tupleDeserializer<_TTuple>::DeserializeTuple(Data, Tuple);
 }
 
 template <typename _T>
@@ -237,7 +244,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, _T& Value) {
         }
     }
     else if constexpr (SerializableStdTuple<_T>) {
-        details::tupleDeserializer<_T>::DeserializeTuple(Data, Value);
+        details::DeserializeTuple(Data, Value);
     }
 }
 
