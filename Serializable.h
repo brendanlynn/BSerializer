@@ -4,11 +4,19 @@
 
 namespace BSerializer {
     template <typename _T>
-    concept InBuiltSerializable = requires(const _T Obj_C, _T Obj_V, const void* Data_C, void* Data_V) {
-        { Obj_C.SerializedSize() } -> std::same_as<size_t>;
-        { Obj_C.Serialize(Data_V) } -> std::same_as<void>;
-        { _T::Deserialize(Data_C) } -> std::same_as<_T>;
-        { _T::Deserialize(Data_C, Obj_V) } -> std::same_as<void>;
+    concept InBuiltSerializable = requires() {
+        requires requires (const _T Obj) {
+            { Obj.SerializedSize() } -> std::same_as<size_t>;
+        };
+
+        requires requires (const _T Obj, void* Data) {
+            { Obj.Serialize(Data) } -> std::same_as<void>;
+        };
+
+        requires requires (const void* Data, _T Obj) {
+            { _T::Deserialize(Data) } -> std::same_as<_T>;
+            { _T::Deserialize(Data, Obj) } -> std::same_as<void>;
+        };
     };
 
     template <typename _T>
