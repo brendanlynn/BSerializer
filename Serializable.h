@@ -61,8 +61,8 @@ namespace BSerializer {
 
         requires std::same_as<typename _T::value_type, std::pair<const typename _T::key_type, typename _T::mapped_type>>;
 
-        requires requires (const _T Obj) {
-            { Obj.find(std::declval<typename _T::key_type>()) } -> std::same_as<typename _T::const_iterator>;
+        requires requires (const _T Obj, const typename _T::key_type Key) {
+            { Obj.find(Key) } -> std::same_as<typename _T::const_iterator>;
         };
     };
 
