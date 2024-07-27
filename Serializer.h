@@ -12,6 +12,9 @@ namespace BSerializer {
         template <typename _T>
         __forceinline void addRef(_T& Ref, _T Val);
 
+        template <typename _T>
+        __forceinline void byteSwap(_T& Bytes);
+
         template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
         struct tupleDeserializer2 {
             __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
@@ -24,35 +27,12 @@ namespace BSerializer {
         struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
             : tupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
     }
-    __forceinline uint8_t ToFromLittleEndian(uint8_t Value);
-    __forceinline uint16_t ToFromLittleEndian(uint16_t Value);
-    __forceinline uint32_t ToFromLittleEndian(uint32_t Value);
-    __forceinline uint64_t ToFromLittleEndian(uint64_t Value);
-
-    __forceinline int8_t ToFromLittleEndian(int8_t Value);
-    __forceinline int16_t ToFromLittleEndian(int16_t Value);
-    __forceinline int32_t ToFromLittleEndian(int32_t Value);
-    __forceinline int64_t ToFromLittleEndian(int64_t Value);
-
-    __forceinline void ToFromLittleEndian(uint8_t* Lower, uint8_t* Upper);
-    __forceinline void ToFromLittleEndian(uint16_t* Lower, uint16_t* Upper);
-    __forceinline void ToFromLittleEndian(uint32_t* Lower, uint32_t* Upper);
-    __forceinline void ToFromLittleEndian(uint64_t* Lower, uint64_t* Upper);
-
-    __forceinline void ToFromLittleEndian(int8_t* Lower, int8_t* Upper);
-    __forceinline void ToFromLittleEndian(int16_t* Lower, int16_t* Upper);
-    __forceinline void ToFromLittleEndian(int32_t* Lower, int32_t* Upper);
-    __forceinline void ToFromLittleEndian(int64_t* Lower, int64_t* Upper);
-
-    __forceinline void ToFromLittleEndian(uint8_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(uint16_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(uint32_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(uint64_t* Array, size_t Length);
-
-    __forceinline void ToFromLittleEndian(int8_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(int16_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(int32_t* Array, size_t Length);
-    __forceinline void ToFromLittleEndian(int64_t* Array, size_t Length);
+    template <typename _T>
+    __forceinline _T ToFromLittleEndian(_T Value);
+    template <typename _T>
+    __forceinline void ToFromLittleEndian(_T* Lower, _T* Upper);
+    template <typename _T>
+    __forceinline void ToFromLittleEndian(_T* Array, size_t Length);
 
     template <Serializable _T>
     __forceinline size_t SerializedSize(const _T& Value);
@@ -96,6 +76,11 @@ template <typename _T>
 __forceinline void BSerializer::details::addRef(_T& Ref, _T Val) {
     Ref += Val;
 }
+template <typename _T>
+__forceinline void BSerializer::details::byteSwap(_T& Bytes) {
+    std::byte* bytes = (std::byte*)&Bytes;
+    std::reverse(bytes, bytes + sizeof(_T));
+}
 template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
 __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
     _TFirst& v = std::get<_Index>(Tuple);
@@ -105,113 +90,21 @@ __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TF
     }
 }
 
-__forceinline uint8_t BSerializer::ToFromLittleEndian(uint8_t Value) {
+template <typename _T>
+__forceinline _T BSerializer::ToFromLittleEndian(_T Value) {
+    if (std::endian::native == std::endian::big) details::byteSwap(Value);
     return Value;
 }
-__forceinline uint16_t BSerializer::ToFromLittleEndian(uint16_t Value) {
+template <typename _T>
+__forceinline void BSerializer::ToFromLittleEndian(_T* Lower, _T* Upper) {
     if (std::endian::native == std::endian::big) {
-        return (Value << 8) | (Value >> 8);
-    }
-    return Value;
-}
-__forceinline uint32_t BSerializer::ToFromLittleEndian(uint32_t Value) {
-    if (std::endian::native == std::endian::big) {
-        return
-            ((Value << 24) & 0xFF000000) |
-            ((Value <<  8) & 0x00FF0000) |
-            ((Value >>  8) & 0x0000FF00) |
-            ((Value >> 24) & 0x000000FF);
-    }
-    return Value;
-}
-__forceinline uint64_t BSerializer::ToFromLittleEndian(uint64_t Value) {
-    if (std::endian::native == std::endian::big) {
-        return
-            ((Value << 56) & 0xFF00000000000000) |
-            ((Value << 40) & 0x00FF000000000000) |
-            ((Value << 24) & 0x0000FF0000000000) |
-            ((Value <<  8) & 0x000000FF00000000) |
-            ((Value >>  8) & 0x00000000FF000000) |
-            ((Value >> 24) & 0x0000000000FF0000) |
-            ((Value >> 40) & 0x000000000000FF00) |
-            ((Value >> 56) & 0x00000000000000FF);
-    }
-    return Value;
-}
-__forceinline int8_t BSerializer::ToFromLittleEndian(int8_t Value) {
-    return Value;
-}
-__forceinline int16_t BSerializer::ToFromLittleEndian(int16_t Value) {
-    return (int16_t)ToFromLittleEndian((uint16_t)Value);
-}
-__forceinline int32_t BSerializer::ToFromLittleEndian(int32_t Value) {
-    return (int32_t)ToFromLittleEndian((uint32_t)Value);
-}
-__forceinline int64_t BSerializer::ToFromLittleEndian(int64_t Value) {
-    return (int64_t)ToFromLittleEndian((uint64_t)Value);
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint8_t* Lower, uint8_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
+        for (; Lower < Upper; ++Lower) {
+            details::byteSwap(*Lower);
+        }
     }
 }
-__forceinline void BSerializer::ToFromLittleEndian(uint16_t* Lower, uint16_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint32_t* Lower, uint32_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint64_t* Lower, uint64_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(int8_t* Lower, int8_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(int16_t* Lower, int16_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(int32_t* Lower, int32_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(int64_t* Lower, int64_t* Upper) {
-    for (; Lower < Upper; ++Lower) {
-        *Lower = ToFromLittleEndian(*Lower);
-    }
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint8_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint16_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint32_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(uint64_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(int8_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(int16_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(int32_t* Array, size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
-}
-__forceinline void BSerializer::ToFromLittleEndian(int64_t* Array, size_t Length) {
+template <typename _T>
+__forceinline void BSerializer::ToFromLittleEndian(_T* Array, size_t Length) {
     ToFromLittleEndian(Array, Array + Length);
 }
 template <BSerializer::Serializable _T>
