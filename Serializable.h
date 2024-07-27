@@ -4,7 +4,7 @@
 
 namespace BSerializer {
     template <typename _T>
-    concept InBuiltSerializable = requires() {
+    concept BuiltInSerializable = requires() {
         requires requires (const _T Obj) {
             { Obj.SerializedSize() } -> std::same_as<size_t>;
         };
@@ -123,7 +123,7 @@ namespace BSerializer {
                 isSerializableStdTuple<_T>::value ||
                 isSerializableCollection<_T>::value ||
                 isSerializableMap<_T>::value ||
-                InBuiltSerializable<_T>
+                BuiltInSerializable<_T>
             > { };
     }
 
