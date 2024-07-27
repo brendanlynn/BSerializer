@@ -47,6 +47,12 @@ namespace BSerializer {
     __forceinline void Deserialize(const void*& Data, _T* Value);
     template <Serializable _T>
     __forceinline void Deserialize(const void*& Data, void* Value);
+    template <Serializable _T>
+    __forceinline _T Deserialize(void*& Data);
+    template <Serializable _T>
+    __forceinline void Deserialize(void*& Data, _T* Value);
+    template <Serializable _T>
+    __forceinline void Deserialize(void*& Data, void* Value);
 
     template <Serializable _T>
     __forceinline size_t SerializedArraySize(const _T* Lower, const _T* Upper);
@@ -245,6 +251,21 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     else if constexpr (SerializableStdTuple<_T>) {
         details::DeserializeTuple(Data, *(_T*)Value);
     }
+}
+
+template <BSerializer::Serializable _T>
+__forceinline _T BSerializer::Deserialize(void*& Data) {
+    return Deserialize<_T>(const_cast<const void*&>(Data));
+}
+
+template <BSerializer::Serializable _T>
+__forceinline void BSerializer::Deserialize(void*& Data, _T* Value) {
+    Deserialize(const_cast<const void*&>(Data), Value);
+}
+
+template <BSerializer::Serializable _T>
+__forceinline void BSerializer::Deserialize(void*& Data, void* Value) {
+    Deserialize<_T>(const_cast<const void*&>(Data), Value);
 }
 
 template <BSerializer::Serializable _T>
