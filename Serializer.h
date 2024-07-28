@@ -30,10 +30,28 @@ namespace BSerializer {
         template <typename _TTuple>
         __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
     }
+    /**
+     * @brief If the architecture is big-endian, the function will reverse the order of the bytes of Value. If not, the function returns the value it was given.
+     * @tparam _T The type of the value.
+     * @param Value The value whose bytes are conditionally reversed.
+     * @return The resulting value.
+     */
     template <typename _T>
     __forceinline _T ToFromLittleEndian(_T Value);
+    /**
+     * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
+     * @tparam _T The type of the array elements.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     */
     template <typename _T>
     __forceinline void ToFromLittleEndian(_T* Lower, _T* Upper);
+    /**
+     * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
+     * @tparam _T The type of the array elements.
+     * @param Array A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     */
     template <typename _T>
     __forceinline void ToFromLittleEndian(_T* Array, size_t Length);
 
