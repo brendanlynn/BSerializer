@@ -55,20 +55,68 @@ namespace BSerializer {
     template <typename _T>
     __forceinline void ToFromLittleEndian(_T* Array, size_t Length);
 
+    /**
+     * @brief Returns what the serialized size of a value in memory would be if it were serialized.
+     * @tparam _T The type of the value. _T must conform to BSerializer::Serializable.
+     * @param Value The value whose serialized size will be precalculated.
+     * @return What the serialized size of a value in memory would be if it were serialized.
+     */
     template <Serializable _T>
     __forceinline size_t SerializedSize(const _T& Value);
+    /**
+     * @brief Serializes a value.
+     * @tparam _T The type of the value serialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Value The value to serialize.
+     */
     template <Serializable _T>
     __forceinline void Serialize(void*& Data, const _T& Value);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @return The deserialized value.
+     */
     template <Serializable _T>
     __forceinline _T Deserialize(const void*& Data);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Value A pointer to the location in memory in which the deserialized value will be placed.
+     */
     template <Serializable _T>
     __forceinline void Deserialize(const void*& Data, _T* Value);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Value A pointer to the location in memory in which the deserialized value will be placed.
+     */
     template <Serializable _T>
     __forceinline void Deserialize(const void*& Data, void* Value);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @return The deserialized value.
+     */
     template <Serializable _T>
     __forceinline _T Deserialize(void*& Data);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Value A pointer to the location in memory in which the deserialized value will be placed.
+     */
     template <Serializable _T>
     __forceinline void Deserialize(void*& Data, _T* Value);
+    /**
+     * @brief Deserializes a value.
+     * @tparam _T The type of the value deserialized. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Value A pointer to the location in memory in which the deserialized value will be placed.
+     */
     template <Serializable _T>
     __forceinline void Deserialize(void*& Data, void* Value);
 
