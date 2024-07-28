@@ -120,32 +120,128 @@ namespace BSerializer {
     template <Serializable _T>
     __forceinline void Deserialize(void*& Data, void* Value);
 
+    /**
+     * @brief Returns what the serialized size of an array of values in memory would be if it were serialized.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     * @return What the serialized size of the array in memory would be if it were serialized.
+     */
     template <Serializable _T>
     __forceinline size_t SerializedArraySize(const _T* Lower, const _T* Upper);
+    /**
+     * @brief Returns what the serialized size of an array of values in memory would be if it were serialized.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Array A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     * @return What the serialized size of the array in memory would be if it were serialized.
+     */
     template <Serializable _T>
     __forceinline size_t SerializedArraySize(const _T* Array, size_t Length);
+    /**
+     * @brief Serializes an array of values.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     */
     template <Serializable _T>
     __forceinline void SerializeArray(void*& Data, const _T* Lower, const _T* Upper);
+    /**
+     * @brief Serializes an array of values.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Array A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     */
     template <Serializable _T>
     __forceinline void SerializeArray(void*& Data, const _T* Array, size_t Length);
+    /**
+     * @brief Deserializes an array of values.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     */
     template <Serializable _T>
     __forceinline void DeserializeArray(const void*& Data, _T* Lower, _T* Upper);
+    /**
+     * @brief Deserializes an array of values.
+     * @tparam _T The type of the array elements. _T must conform to BSerializer::Serializable.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Array A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     */
     template <Serializable _T>
     __forceinline void DeserializeArray(const void*& Data, _T* Array, size_t Length);
 
+    /**
+     * @brief Returns the size of the raw serialized data.
+     * @tparam _T The type of the value.
+     * @param Value The value to be serialized.
+     * @return The size of the raw serialized data.
+     */
     template <typename _T>
     __forceinline size_t SerializedRawSize(const _T& Value);
+    /**
+     * @brief Serializes a value into raw data.
+     * @tparam _T The type of the value.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Value The value to be serialized.
+     */
     template <typename _T>
     __forceinline void SerializeRaw(void*& Data, const _T& Value);
+    /**
+     * @brief Deserializes a value from raw data.
+     * @tparam _T The type of the value.
+     * @param Data A pointer to the source of the serialized data.
+     * @return The deserialized value.
+     */
     template <typename _T>
     __forceinline _T DeserializeRaw(const void*& Data);
+    /**
+     * @brief Deserializes a value from raw data.
+     * @tparam _T The type of the value.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Value The value to be deserialized.
+     */
     template <typename _T>
     __forceinline void DeserializeRaw(const void*& Data, _T& Value);
 
+    /**
+     * @brief Returns the size of the raw serialized data for an array.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     * @return The size of the raw serialized data for the array.
+     */
     __forceinline size_t SerializedRawSize(const void* Lower, const void* Upper);
+    /**
+     * @brief Serializes an array into raw data.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     */
     __forceinline void SerializeRaw(void*& Data, const void* Lower, const void* Upper);
+    /**
+     * @brief Serializes an array into raw data.
+     * @param Data A pointer to the destination of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     */
     __forceinline void SerializeRaw(void*& Data, const void* Lower, size_t Length);
+    /**
+     * @brief Deserializes an array from raw data.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Upper A pointer to the exclusive upper bound of the array.
+     */
     __forceinline void DeserializeRaw(const void*& Data, void* Lower, void* Upper);
+    /**
+     * @brief Deserializes an array from raw data.
+     * @param Data A pointer to the source of the serialized data.
+     * @param Lower A pointer to the inclusive lower bound of the array.
+     * @param Length The quantity of elements in the array.
+     */
     __forceinline void DeserializeRaw(const void*& Data, void* Lower, size_t Length);
 }
 
