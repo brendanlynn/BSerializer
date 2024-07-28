@@ -203,10 +203,18 @@ namespace BSerializer {
      * @brief Deserializes a value from raw data.
      * @tparam _T The type of the value.
      * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value The value to be deserialized.
+     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <typename _T>
-    __forceinline void DeserializeRaw(const void*& Data, _T& Value);
+    __forceinline void DeserializeRaw(const void*& Data, _T* Value);
+    /**
+     * @brief Deserializes a value from raw data.
+     * @tparam _T The type of the value.
+     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     */
+    template <typename _T>
+    __forceinline void DeserializeRaw(const void*& Data, void* Value);
 
     /**
      * @brief Returns the size of the raw serialized data for an array.
@@ -480,8 +488,13 @@ __forceinline _T BSerializer::DeserializeRaw(const void*& Data) {
 }
 
 template <typename _T>
-__forceinline void BSerializer::DeserializeRaw(const void*& Data, _T& Value) {
-    DeserializeRaw(Data, &Value, sizeof(_T));
+__forceinline void BSerializer::DeserializeRaw(const void*& Data, _T* Value) {
+    DeserializeRaw(Data, (void*)Value);
+}
+
+template <typename _T>
+__forceinline void BSerializer::DeserializeRaw(const void*& Data, void* Value) {
+    DeserializeRaw(Data, Value, sizeof(_T));
 }
 
 __forceinline size_t BSerializer::SerializedRawSize(const void* Lower, const void* Upper) {
