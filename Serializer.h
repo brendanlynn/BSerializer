@@ -30,6 +30,7 @@ namespace BSerializer {
         template <typename _TTuple>
         __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
     }
+
     /**
      * @brief If the architecture is big-endian, the function will reverse the order of the bytes of Value. If not, the function returns the value it was given.
      * @tparam _T The type of the value.
@@ -257,11 +258,13 @@ template <typename _T>
 __forceinline void BSerializer::details::addRef(_T& Ref, _T Val) {
     Ref += Val;
 }
+
 template <typename _T>
 __forceinline void BSerializer::details::byteSwap(_T& Bytes) {
     std::byte* bytes = (std::byte*)&Bytes;
     std::reverse(bytes, bytes + sizeof(_T));
 }
+
 template <typename _TTuple, size_t _Index, typename _TFirst, typename... _TsAll>
 __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
     _TFirst& v = std::get<_Index>(Tuple);
@@ -270,6 +273,7 @@ __forceinline void BSerializer::details::tupleDeserializer2<_TTuple, _Index, _TF
         tupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(Data, Tuple);
     }
 }
+
 template <typename _TTuple>
 __forceinline static void BSerializer::details::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
     tupleDeserializer<_TTuple>::DeserializeTuple(Data, Tuple);
@@ -280,6 +284,7 @@ __forceinline _T BSerializer::ToFromLittleEndian(_T Value) {
     if (std::endian::native == std::endian::big) details::byteSwap(Value);
     return Value;
 }
+
 template <typename _T>
 __forceinline void BSerializer::ToFromLittleEndian(_T* Lower, _T* Upper) {
     if (std::endian::native == std::endian::big) {
@@ -288,10 +293,12 @@ __forceinline void BSerializer::ToFromLittleEndian(_T* Lower, _T* Upper) {
         }
     }
 }
+
 template <typename _T>
 __forceinline void BSerializer::ToFromLittleEndian(_T* Array, size_t Length) {
     ToFromLittleEndian(Array, Array + Length);
 }
+
 template <BSerializer::Serializable _T>
 __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     if constexpr (BuiltInSerializable<_T>) {

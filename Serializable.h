@@ -217,7 +217,6 @@ namespace BSerializer {
     template <typename _T>
     concept Arithmetic = std::is_arithmetic_v<_T>;
     
-
     /**
      * @brief Concept to check if a type is any std::pair<..., ...>.
      * 
