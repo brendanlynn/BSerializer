@@ -334,7 +334,7 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         }, Value);
         return t;
     }
-    else if constexpr (Complex<_T>) {
+    else if constexpr (StdComplex<_T>) {
         return sizeof(decltype(Value.real())) << 1;
     }
 }
@@ -407,7 +407,7 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
             (Serialize(Data, args), ...);
         }, Value);
     }
-    else if constexpr (Complex<_T>) {
+    else if constexpr (StdComplex<_T>) {
         Serialize(Data, Value.real());
         Serialize(Data, Value.imag());
     }
@@ -507,7 +507,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     else if constexpr (SerializableStdTuple<_T>) {
         details::DeserializeTuple(Data, *(_T*)Value);
     }
-    else if constexpr (Complex<_T>) {
+    else if constexpr (StdComplex<_T>) {
         using component_t = decltype(std::declval<_T>().real());
         component_t re = Deserialize<component_t>(Data);
         component_t im = Deserialize<component_t>(Data);
