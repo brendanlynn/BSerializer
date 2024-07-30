@@ -5,7 +5,6 @@
 #include <utility>
 #include <tuple>
 #include <exception>
-#include <complex>
 #include "Serializable.h"
 
 namespace BSerializer {
