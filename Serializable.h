@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <complex>
+#include <array>
 
 namespace BSerializer {
     /**
@@ -207,6 +208,20 @@ namespace BSerializer {
             : std::true_type { };
         
         template <typename _T>
+        struct isStdArray
+            : std::false_type { };
+        template <typename _T, size_t _Size>
+        struct isStdArray<std::array<_T, _Size>>
+            : std::true_type { };
+
+        template <typename _T>
+        struct isSerializableStdArray
+            : std::false_type { };
+        template <typename _T, size_t _Size>
+        struct isSerializableStdArray<std::array<_T, _Size>>
+            : std::bool_constant<isSerializable<_T>::value> { };
+
+        template <typename _T>
         struct isSerializable
             : std::bool_constant<
                 std::is_arithmetic_v<_T> ||
@@ -215,6 +230,7 @@ namespace BSerializer {
                 isSerializableCollection<_T>::value ||
                 isSerializableMap<_T>::value ||
                 isStdComplex<_T>::value ||
+                isSerializableStdArray<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -284,6 +300,22 @@ namespace BSerializer {
     concept StdComplex = details::isStdComplex<_T>::value;
 
     /**
+     * @brief Concept to check if a type is any std::array<..., ...>.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept StdArray = details::isStdArray<_T>::value;
+
+    /**
+     * @brief Concept to check if a type is any std::array<..., ...> and if the types of its elements are (de)serializable by BSerializer.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept SerializableStdArray = details::isSerializableStdArray<_T>::value;
+
+    /**
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
@@ -293,6 +325,7 @@ namespace BSerializer {
      * - It satisfies BSerializer::SerializableCollection (is a BSerializer::Collection and the types of its elements are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableMap (is a BSerializer::Map and the types of its keys and values are [de]serializable by BSerializer).
      * - It satisfies BSerializer::StdComplex (is any std::complex<...>).
+     * - It satisfies BSerializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by BSerializer).
      * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
      * 
      * @tparam _T The type whose conformity is evaluated.

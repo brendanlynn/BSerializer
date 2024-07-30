@@ -5,6 +5,7 @@
 #include <utility>
 #include <tuple>
 #include <exception>
+#include <array>
 #include "Serializable.h"
 
 namespace BSerializer {
@@ -337,6 +338,11 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     else if constexpr (StdComplex<_T>) {
         return sizeof(decltype(Value.real())) << 1;
     }
+    else if constexpr (SerializableStdArray<_T>) {
+        size_t t = 0;
+        for (auto& e : Value) t += SerializedSize(e);
+        return t;
+    }
 }
 
 template <BSerializer::Serializable _T>
@@ -410,6 +416,9 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     else if constexpr (StdComplex<_T>) {
         Serialize(Data, Value.real());
         Serialize(Data, Value.imag());
+    }
+    else if constexpr (SerializableStdArray<_T>) {
+        for (auto& e : Value) Serialize(Data, e);
     }
 }
 
@@ -512,6 +521,13 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         component_t re = Deserialize<component_t>(Data);
         component_t im = Deserialize<component_t>(Data);
         new (Value) _T(re, im);
+    }
+    else if constexpr (SerializableStdArray<_T>) {
+        using value_t = typename _T::value_type;
+        constexpr size_t size = std::tuple_size_v<_T>;
+        value_t* i = (value_t*)Value;
+        value_t* upper = i + size;
+        for (; i < upper; ++i) Deserialize(Data, i);
     }
 }
 
