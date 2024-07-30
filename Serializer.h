@@ -305,11 +305,12 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         return Value.SerializedSize();
     }
     else if constexpr (SerializableCollection<_T>) {
+        using value_t = typename _T::value_type;
         size_t t = sizeof(size_t);
-        if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
-            for (bool v : Value) {
-                t += SerializedSize(v);
-            }
+        if constexpr (std::same_as<value_t, bool>) {
+            size_t s = Value.size();
+            t += s >> 3;
+            if (s & 7) t += 1;
         }
         else {
             for (auto& v : Value) {
@@ -341,22 +342,53 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         Value.Serialize(Data);
     }
     else if constexpr (SerializableCollection<_T>) {
-        size_t* lenLoc = (size_t*)Data;
-        Data = lenLoc + 1;
-        size_t len = 0;
-        if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
-            for (bool v : Value) {
-                Serialize(Data, v);
-                ++len;
+        using value_t = typename _T::value_type;
+        size_t len = Value.size();
+        Serialize(Data, len);
+        if (len) {
+            if constexpr (std::same_as<value_t, bool>) {
+                uint64_t m = 1;
+                uint64_t c = 0;
+                if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
+                    for (bool v : Value) {
+                        if (!m) {
+                            Serialize(Data, c);
+                            m = 1;
+                            c = 0;
+                        }
+                        if (v) c |= m;
+                        m <<= 1;
+                    }
+                }
+                else {
+                    for (auto& v : Value) {
+                        if (!m) {
+                            Serialize(Data, c);
+                            m = 1;
+                            c = 0;
+                        }
+                        if (v) c |= m;
+                        m <<= 1;
+                    }
+                }
+                if (m) {
+                    size_t i;
+                    if (!(c >> 8)) i = 1;
+                    else if (!(c >> 16)) i = 2;
+                    else if (!(c >> 24)) i = 3;
+                    else if (!(c >> 32)) i = 4;
+                    else if (!(c >> 40)) i = 5;
+                    else if (!(c >> 48)) i = 6;
+                    else if (!(c >> 56)) i = 7;
+                    else i = 8;
+                    if constexpr (std::endian::native == std::endian::big) std::reverse((uint8_t*)&c, ((uint8_t*)&c) + i);
+                    memcpy(Data, &c, i);
+                    Data = ((uint8_t*)Data) + i;
+                }
+                else Serialize(Data, c);
             }
+            else for (auto& v : Value) Serialize(Data, v);
         }
-        else {
-            for (auto& v : Value) {
-                Serialize(Data, v);
-                ++len;
-            }
-        }
-        *lenLoc = ToFromLittleEndian(len);
     }
     else if constexpr (Arithmetic<_T>) {
         _T v2 = ToFromLittleEndian(Value);
@@ -397,12 +429,37 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         size_t len = Deserialize<size_t>(Data);
         value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
         value_t* b = arr + len;
-        for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
+        if constexpr (std::same_as<value_t, bool>) {
+            bool* fb = arr + (len & ~((1ui64 << 6) - 1));
+            uint64_t m = 0;
+            uint64_t c = 0;
+            for (bool* p_v = arr; p_v < fb; ++p_v) {
+                if (!m) {
+                    m = 1;
+                    Deserialize(Data, &c);
+                }
+                *p_v = (bool)(c & m);
+                m <<= 1;
+            }
+            if (fb != b) {
+                size_t i = b - fb;
+                i = (i >> 3) + ((i & 7ui64) ? 1ui64 : 0ui64);
+                memcpy(&c, Data, i);
+                if constexpr (std::endian::native == std::endian::big) std::reverse((uint8_t*)&c, ((uint8_t*)&c) + i);
+                Data = ((uint8_t*)Data) + i;
+                m = 1;
+                for (bool* p_v = fb; p_v < b; ++p_v) {
+                    *p_v = (bool)(c & m);
+                    m <<= 1;
+                }
+            }
+        }
+        else for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
         new (Value) _T(std::initializer_list<value_t>(arr, b));
         free(arr);
     }
     else if constexpr (Arithmetic<_T>) {
-        new (Value) _T (ToFromLittleEndian(*(_T*)Data));
+        new (Value) _T(ToFromLittleEndian(*(_T*)Data));
         Data = ((_T*)Data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {
