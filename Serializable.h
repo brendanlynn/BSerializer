@@ -199,6 +199,13 @@ namespace BSerializer {
             : std::bool_constant<isSerializable<typename _T::key_type>::value && isSerializable<typename _T::mapped_type>::value> { };
 
         template <typename _T>
+        struct isComplex
+            : std::false_type { };
+        template <typename _T>
+        struct isComplex<std::complex<_T>>
+            : std::true_type { };
+        
+        template <typename _T>
         struct isSerializable
             : std::bool_constant<
                 std::is_arithmetic_v<_T> ||
@@ -206,6 +213,7 @@ namespace BSerializer {
                 isSerializableStdTuple<_T>::value ||
                 isSerializableCollection<_T>::value ||
                 isSerializableMap<_T>::value ||
+                isComplex<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -267,6 +275,14 @@ namespace BSerializer {
     concept SerializableMap = details::isSerializableMap<_T>::value;
 
     /**
+     * @brief Concept to check if a type is any std::complex<...>.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept Complex = details::isComplex<_T>::value;
+
+    /**
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
@@ -275,6 +291,7 @@ namespace BSerializer {
      * - It satisfies BSerializer::SerializableStdTuple (is any std::tuple<...> and the types of its values are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableCollection (is a BSerializer::Collection and the types of its elements are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableMap (is a BSerializer::Map and the types of its keys and values are [de]serializable by BSerializer).
+     * - It satisfies BSerializer::Complex (is any std::complex<...>).
      * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
      * 
      * @tparam _T The type whose conformity is evaluated.

@@ -5,6 +5,7 @@
 #include <utility>
 #include <tuple>
 #include <exception>
+#include <complex>
 #include "Serializable.h"
 
 namespace BSerializer {
@@ -334,6 +335,9 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         }, Value);
         return t;
     }
+    else if constexpr (Complex<_T>) {
+        return sizeof(decltype(Value.real())) << 1;
+    }
 }
 
 template <BSerializer::Serializable _T>
@@ -403,6 +407,10 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         std::apply([&Data](const auto&... args) {
             (Serialize(Data, args), ...);
         }, Value);
+    }
+    else if constexpr (Complex<_T>) {
+        Serialize(Data, Value.real());
+        Serialize(Data, Value.imag());
     }
 }
 
@@ -499,6 +507,12 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     }
     else if constexpr (SerializableStdTuple<_T>) {
         details::DeserializeTuple(Data, *(_T*)Value);
+    }
+    else if constexpr (Complex<_T>) {
+        using component_t = decltype(std::declval<_T>().real());
+        component_t re = Deserialize<component_t>(Data);
+        component_t im = Deserialize<component_t>(Data);
+        new (Value) _T(re, im);
     }
 }
 
