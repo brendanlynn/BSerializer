@@ -86,7 +86,8 @@ namespace BSerializer {
         };
 
         requires requires(const typename _T::const_iterator CIt) {
-            { *CIt } -> std::same_as<const typename _T::value_type&>;
+            requires std::same_as<decltype(*CIt), const typename _T::value_type&> ||
+                     (std::same_as<typename _T::value_type, bool> && std::same_as<decltype(*CIt), bool>);
         };
 
         requires requires(typename _T::const_iterator CIt) {
@@ -99,8 +100,8 @@ namespace BSerializer {
             { CIt1 != CIt2 } -> std::same_as<bool>;
         };
 
-        requires requires(const typename _T::value_type* const P1, const typename _T::value_type* const P2) {
-            _T{ P1, P2 };
+        requires requires(const std::initializer_list<typename _T::value_type> InitList) {
+            _T(InitList);
         };
     };
 

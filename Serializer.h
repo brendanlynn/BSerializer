@@ -306,8 +306,15 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     }
     else if constexpr (SerializableCollection<_T>) {
         size_t t = sizeof(size_t);
-        for (auto& v : Value) {
-            t += SerializedSize(v);
+        if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
+            for (bool v : Value) {
+                t += SerializedSize(v);
+            }
+        }
+        else {
+            for (auto& v : Value) {
+                t += SerializedSize(v);
+            }
         }
         return t;
     }
@@ -337,9 +344,17 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         size_t* lenLoc = (size_t*)Data;
         Data = lenLoc + 1;
         size_t len = 0;
-        for (auto& v : Value) {
-            Serialize(Data, v);
-            ++len;
+        if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
+            for (bool v : Value) {
+                Serialize(Data, v);
+                ++len;
+            }
+        }
+        else {
+            for (auto& v : Value) {
+                Serialize(Data, v);
+                ++len;
+            }
         }
         *lenLoc = ToFromLittleEndian(len);
     }
@@ -383,7 +398,7 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
         value_t* b = arr + len;
         for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
-        new (Value) _T{ arr, arr + len };
+        new (Value) _T(std::initializer_list<value_t>(arr, b));
         free(arr);
     }
     else if constexpr (Arithmetic<_T>) {
