@@ -6,6 +6,7 @@
 #include <tuple>
 #include <exception>
 #include <array>
+#include <optional>
 #include "Serializable.h"
 
 namespace BSerializer {
@@ -343,6 +344,12 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         for (auto& e : Value) t += SerializedSize(e);
         return t;
     }
+    else if constexpr (SerializableStdOptional<_T>) {
+        if (Value) {
+            return sizeof(bool) + SerializedSize(*Value);
+        }
+        else return sizeof(bool);
+    }
 }
 
 template <BSerializer::Serializable _T>
@@ -419,6 +426,13 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     }
     else if constexpr (SerializableStdArray<_T>) {
         for (auto& e : Value) Serialize(Data, e);
+    }
+    else if constexpr (SerializableStdOptional<_T>) {
+        if (Value) {
+            Serialize(Data, true);
+            Serialize(Data, *Value);
+        }
+        else Serialize(Data, false);
     }
 }
 
@@ -528,6 +542,11 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         value_t* i = (value_t*)Value;
         value_t* upper = i + size;
         for (; i < upper; ++i) Deserialize(Data, i);
+    }
+    else if constexpr (SerializableStdOptional<_T>) {
+        bool v = Deserialize<bool>(Data);
+        if (v) new (Value) _T(Deserialize<typename _T::value_type>(Data));
+        else new (Value) _T;
     }
 }
 

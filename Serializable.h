@@ -222,6 +222,20 @@ namespace BSerializer {
             : std::bool_constant<isSerializable<_T>::value> { };
 
         template <typename _T>
+        struct isStdOptional
+            : std::false_type { };
+        template <typename _T>
+        struct isStdOptional<std::optional<_T>>
+            : std::true_type { };
+
+        template <typename _T>
+        struct isSerializableStdOptional
+            : std::false_type { };
+        template <typename _T>
+        struct isSerializableStdOptional<std::optional<_T>>
+            : std::bool_constant<isSerializable<_T>::value> { };
+
+        template <typename _T>
         struct isSerializable
             : std::bool_constant<
                 std::is_arithmetic_v<_T> ||
@@ -231,6 +245,7 @@ namespace BSerializer {
                 isSerializableMap<_T>::value ||
                 isStdComplex<_T>::value ||
                 isSerializableStdArray<_T>::value ||
+                isSerializableStdOptional<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -316,6 +331,22 @@ namespace BSerializer {
     concept SerializableStdArray = details::isSerializableStdArray<_T>::value;
 
     /**
+     * @brief Concept to check if a type is any std::optional<...>.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept StdOptional = details::isStdOptional<_T>::value;
+
+    /**
+     * @brief Concept to check if a type is any std::optional<...> and if the conditionally wrapped type is (de)serializable by BSerializer.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept SerializableStdOptional = details::isSerializableStdOptional<_T>::value;
+
+    /**
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
@@ -326,6 +357,7 @@ namespace BSerializer {
      * - It satisfies BSerializer::SerializableMap (is a BSerializer::Map and the types of its keys and values are [de]serializable by BSerializer).
      * - It satisfies BSerializer::StdComplex (is any std::complex<...>).
      * - It satisfies BSerializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by BSerializer).
+     * - It satisfies BSerializer::SerializableStdOptional (is any std::optional<...> and the conditionally wrapped type is [de]serializable by BSerializer).
      * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
      * 
      * @tparam _T The type whose conformity is evaluated.
