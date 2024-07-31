@@ -29,6 +29,31 @@ namespace BSerializer {
 
         template <typename _TTuple>
         __forceinline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
+
+        template <size_t _Index, typename... _Ts>
+        struct variantHelper2 {
+            static size_t SerializedSize(const std::variant<_Ts...>& Variant);
+
+            static void Serialize(void*& Data, const std::variant<_Ts...>& Variant);
+
+            static void Deserialize(const void*& Data, size_t Index, std::variant<_Ts...>* Variant);
+        };
+
+        template <typename _T>
+        struct variantHelper;
+
+        template <typename... _Ts>
+        struct variantHelper<std::variant<_Ts...>>
+            : variantHelper2<0, _Ts...> { };
+
+        template <typename _TVariant>
+        size_t variantSerializedSize(const _TVariant& Variant);
+
+        template <typename _TVariant>
+        void variantSerialize(void*& Data, const _TVariant& Variant);
+
+        template <typename _TVariant>
+        void variantDeserialize(const void*& Data, _TVariant* Variant);
     }
 
     /**
@@ -279,6 +304,82 @@ __forceinline static void BSerializer::details::DeserializeTuple(const void*& Da
     tupleDeserializer<_TTuple>::DeserializeTuple(Data, Tuple);
 }
 
+template <size_t _Index, typename... _Ts>
+size_t BSerializer::details::variantHelper2<_Index, _Ts...>::SerializedSize(const std::variant<_Ts...>& Variant) {
+    if constexpr (_Index >= sizeof...(_Ts)) {
+        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) return sizeof(size_t);
+        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'Variant' is invalid.");
+    }
+    else if (Variant.index() == _Index) {
+        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+        if constexpr (std::same_as<element_t, std::monostate>) return sizeof(size_t);
+        else return sizeof(size_t) + BSerializer::SerializedSize(std::get<_Index>(Variant));
+    }
+    else {
+        return variantHelper2<_Index + 1, _Ts...>::SerializedSize(Variant);
+    }
+}
+
+template <size_t _Index, typename... _Ts>
+void BSerializer::details::variantHelper2<_Index, _Ts...>::Serialize(void*& Data, const std::variant<_Ts...>& Variant) {
+    if constexpr (_Index >= sizeof...(_Ts)) {
+        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
+            BSerializer::Serialize(Data, (size_t)0 - (size_t)1);
+        }
+        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'Variant' is invalid.");
+    }
+    else if (Variant.index() == _Index) {
+        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+        BSerializer::Serialize(Data, _Index);
+        if constexpr (!std::same_as<element_t, std::monostate>) {
+            BSerializer::Serialize(Data, std::get<_Index>(Variant));
+        }
+    }
+    else {
+        variantHelper2<_Index + 1, _Ts...>::Serialize(Data, Variant);
+    }
+}
+
+template <size_t _Index, typename... _Ts>
+void BSerializer::details::variantHelper2<_Index, _Ts...>::Deserialize(const void*& Data, size_t Index, std::variant<_Ts...>* Variant) {
+    if constexpr (_Index >= sizeof...(_Ts)) {
+        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
+            new (Variant) std::variant<_Ts...>(std::monostate());
+        }
+        else {
+            throw std::out_of_range("Deserialized index is out of bounds.");
+        }
+    }
+    else if (Index == _Index) {
+        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+        if constexpr (std::same_as<element_t, std::monostate>) {
+            new (Variant) std::variant<_Ts...>(std::monostate());
+        }
+        else {
+            new (Variant) std::variant<_Ts...>(BSerializer::Deserialize<element_t>(Data));
+        }
+    }
+    else {
+        variantHelper2<_Index + 1, _Ts...>::Deserialize(Data, Index, Variant);
+    }
+}
+
+template <typename _TVariant>
+size_t BSerializer::details::variantSerializedSize(const _TVariant& Variant) {
+    return variantHelper<_TVariant>::SerializedSize(Variant);
+}
+
+template <typename _TVariant>
+void BSerializer::details::variantSerialize(void*& Data, const _TVariant& Variant) {
+    variantHelper<_TVariant>::Serialize(Data, Variant);
+}
+
+template <typename _TVariant>
+void BSerializer::details::variantDeserialize(const void*& Data, _TVariant* Variant) {
+    size_t idx = BSerializer::Deserialize<size_t>(Data);
+    variantHelper<_TVariant>::Deserialize(Data, idx, Variant);
+}
+
 template <typename _T>
 __forceinline _T BSerializer::ToFromLittleEndian(_T Value) {
     if (std::endian::native == std::endian::big) details::byteSwap(Value);
@@ -347,6 +448,9 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
             return sizeof(bool) + SerializedSize(*Value);
         }
         else return sizeof(bool);
+    }
+    else if constexpr (SerializableStdVariant<_T>) {
+        return details::variantSerializedSize(Value);
     }
 }
 
@@ -431,6 +535,9 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
             Serialize(Data, *Value);
         }
         else Serialize(Data, false);
+    }
+    else if constexpr (SerializableStdVariant<_T>) {
+        details::variantSerialize(Data, Value);
     }
 }
 
@@ -545,6 +652,9 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         bool v = Deserialize<bool>(Data);
         if (v) new (Value) _T(Deserialize<typename _T::value_type>(Data));
         else new (Value) _T;
+    }
+    else if constexpr (SerializableStdVariant<_T>) {
+        details::variantDeserialize(Data, (_T*)Value);
     }
 }
 

@@ -4,6 +4,7 @@
 #include <complex>
 #include <array>
 #include <optional>
+#include <variant>
 
 namespace BSerializer {
     /**
@@ -237,6 +238,20 @@ namespace BSerializer {
             : std::bool_constant<isSerializable<_T>::value> { };
 
         template <typename _T>
+        struct isStdVariant
+            : std::false_type { };
+        template <typename... _Ts>
+        struct isStdVariant<std::variant<_Ts...>>
+            : std::true_type { };
+
+        template <typename _T>
+        struct isSerializableStdVariant
+            : std::false_type { };
+        template <typename... _Ts>
+        struct isSerializableStdVariant<std::variant<_Ts...>>
+            : std::bool_constant<((std::same_as<_Ts, std::monostate> || isSerializable<_Ts>::value) && ...)> { };
+
+        template <typename _T>
         struct isSerializable
             : std::bool_constant<
                 std::is_arithmetic_v<_T> ||
@@ -247,6 +262,7 @@ namespace BSerializer {
                 isStdComplex<_T>::value ||
                 isSerializableStdArray<_T>::value ||
                 isSerializableStdOptional<_T>::value ||
+                isSerializableStdVariant<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -348,6 +364,22 @@ namespace BSerializer {
     concept SerializableStdOptional = details::isSerializableStdOptional<_T>::value;
 
     /**
+     * @brief Concept to check if a type is any std::variant<...>.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept StdVariant = details::isStdVariant<_T>::value;
+
+    /**
+     * @brief Concept to check if a type is any std::variant<...> and if all the possible wrapped types are (de)serializable by BSerializer.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept SerializableStdVariant = details::isSerializableStdVariant<_T>::value;
+
+    /**
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
@@ -359,6 +391,7 @@ namespace BSerializer {
      * - It satisfies BSerializer::StdComplex (is any std::complex<...>).
      * - It satisfies BSerializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableStdOptional (is any std::optional<...> and the conditionally wrapped type is [de]serializable by BSerializer).
+     * - It satisfies BSerializer::SerializableStdVariant (is any std::variant<...> and all the possible wrapped types are [de]serializable by BSerializer).
      * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
      * 
      * @tparam _T The type whose conformity is evaluated.
