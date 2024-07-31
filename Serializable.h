@@ -3,6 +3,7 @@
 #include <concepts>
 #include <complex>
 #include <array>
+#include <optional>
 
 namespace BSerializer {
     /**
