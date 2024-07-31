@@ -5,6 +5,7 @@
 #include <array>
 #include <optional>
 #include <variant>
+#include <chrono>
 
 namespace BSerializer {
     /**
@@ -252,6 +253,22 @@ namespace BSerializer {
             : std::bool_constant<((std::same_as<_Ts, std::monostate> || isSerializable<_Ts>::value) && ...)> { };
 
         template <typename _T>
+        struct isStdDuration
+            : std::false_type { };
+        template <typename _T, std::intmax_t _Ratio1, std::intmax_t _Ratio2>
+            requires std::is_arithmetic_v<_T>
+        struct isStdDuration<std::chrono::duration<_T, std::ratio<_Ratio1, _Ratio2>>>
+            : std::true_type { };
+
+        template <typename _T>
+        struct isStdTimePoint
+            : std::false_type { };
+        template <typename _Clock, typename _Duration>
+            requires isStdDuration<_Duration>::value
+        struct isStdTimePoint<std::chrono::time_point<_Clock, _Duration>>
+            : std::true_type { };
+        
+        template <typename _T>
         struct isSerializable
             : std::bool_constant<
                 std::is_arithmetic_v<_T> ||
@@ -263,6 +280,8 @@ namespace BSerializer {
                 isSerializableStdArray<_T>::value ||
                 isSerializableStdOptional<_T>::value ||
                 isSerializableStdVariant<_T>::value ||
+                isStdDuration<_T>::value ||
+                isStdTimePoint<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -380,6 +399,22 @@ namespace BSerializer {
     concept SerializableStdVariant = details::isSerializableStdVariant<_T>::value;
 
     /**
+     * @brief Concept to check if a type is any std::chrono::duration<..., ...> with valid template arguments.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept StdDuration = details::isStdDuration<_T>::value;
+
+    /**
+     * @brief Concept to check if a type is any std::chrono::time_point<..., ...> with valid template arguments.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept StdTimePoint = details::isStdTimePoint<_T>::value;
+
+    /**
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
@@ -392,6 +427,8 @@ namespace BSerializer {
      * - It satisfies BSerializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableStdOptional (is any std::optional<...> and the conditionally wrapped type is [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableStdVariant (is any std::variant<...> and all the possible wrapped types are [de]serializable by BSerializer).
+     * - It satisfies BSerializer::StdDuration (is any std::chrono::duration<..., ....> with valid template arguments).
+     * - It satisfies BSerializer::StdTimePoint (is any std::chrono::time_point<..., ....> with valid template arguments).
      * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
      * 
      * @tparam _T The type whose conformity is evaluated.

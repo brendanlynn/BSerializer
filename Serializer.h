@@ -452,6 +452,12 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     else if constexpr (SerializableStdVariant<_T>) {
         return details::variantSerializedSize(Value);
     }
+    else if constexpr (StdDuration<_T>) {
+        return sizeof(decltype(Value.count()));
+    }
+    else if constexpr (StdTimePoint<_T>) {
+        return sizeof(decltype(Value.time_since_epoch().count()));
+    }
 }
 
 template <BSerializer::Serializable _T>
@@ -538,6 +544,12 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     }
     else if constexpr (SerializableStdVariant<_T>) {
         details::variantSerialize(Data, Value);
+    }
+    else if constexpr (StdDuration<_T>) {
+        Serialize(Data, Value.count());
+    }
+    else if constexpr (StdTimePoint<_T>) {
+        Serialize(Data, Value.time_since_epoch());
     }
 }
 
@@ -655,6 +667,14 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     }
     else if constexpr (SerializableStdVariant<_T>) {
         details::variantDeserialize(Data, (_T*)Value);
+    }
+    else if constexpr (StdDuration<_T>) {
+        using internal_t = decltype(std::declval<_T>().count());
+        new (Value) _T(Deserialize<internal_t>(Data));
+    }
+    else if constexpr (StdTimePoint<_T>) {
+        using internal_t = decltype(std::declval<_T>().time_since_epoch());
+        new (Value) _T(Deserialize<internal_t>(Data));
     }
 }
 
