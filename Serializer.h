@@ -405,6 +405,9 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
     if constexpr (BuiltInSerializable<_T>) {
         return Value.SerializedSize();
     }
+    else if constexpr (Trivial<_T>) {
+        return sizeof(_T);
+    }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
         size_t t = sizeof(size_t);
@@ -419,9 +422,6 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
             }
         }
         return t;
-    }
-    else if constexpr (Trivial<_T>) {
-        return sizeof(_T);
     }
     else if constexpr (SerializableStdPair<_T>) {
         return
@@ -464,6 +464,15 @@ template <BSerializer::Serializable _T>
 __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
     if constexpr (BuiltInSerializable<_T>) {
         Value.Serialize(Data);
+    }
+    else if constexpr (Arithmetic<_T>) {
+        _T v2 = ToFromLittleEndian(Value);
+        memcpy(Data, &v2, sizeof(_T));
+        Data = ((_T*)Data + 1);
+    }
+    else if constexpr (Trivial<_T>) {
+        memcpy(Data, &Value, sizeof(_T));
+        Data = ((_T*)Data + 1);
     }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
@@ -513,15 +522,6 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
             }
             else for (auto& v : Value) Serialize(Data, v);
         }
-    }
-    else if constexpr (Arithmetic<_T>) {
-        _T v2 = ToFromLittleEndian(Value);
-        memcpy(Data, &v2, sizeof(_T));
-        Data = ((_T*)Data + 1);
-    }
-    else if constexpr (Trivial<_T>) {
-        memcpy(Data, &Value, sizeof(_T));
-        Data = ((_T*)Data + 1);
     }
     else if constexpr (SerializableStdPair<_T>) {
         Serialize(Data, Value.first);
@@ -575,6 +575,14 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     if constexpr (BuiltInSerializable<_T>) {
         _T::Deserialize(Data, Value);
     }
+    else if constexpr (Arithmetic<_T>) {
+        new (Value) _T(ToFromLittleEndian(*(_T*)Data));
+        Data = ((_T*)Data) + 1;
+    }
+    else if constexpr (Trivial<_T>) {
+        memcpy(Value, Data, sizeof(_T));
+        Data = ((_T*)Data) + 1;
+    }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
         size_t len = Deserialize<size_t>(Data);
@@ -608,14 +616,6 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
         else for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
         new (Value) _T(std::initializer_list<value_t>(arr, b));
         free(arr);
-    }
-    else if constexpr (Arithmetic<_T>) {
-        new (Value) _T(ToFromLittleEndian(*(_T*)Data));
-        Data = ((_T*)Data) + 1;
-    }
-    else if constexpr (Trivial<_T>) {
-        memcpy(Value, Data, sizeof(_T));
-        Data = ((_T*)Data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {
         using t1_t = _T::first_type;
