@@ -420,7 +420,7 @@ __forceinline size_t BSerializer::SerializedSize(const _T& Value) {
         }
         return t;
     }
-    else if constexpr (Arithmetic<_T>) {
+    else if constexpr (Trivial<_T>) {
         return sizeof(_T);
     }
     else if constexpr (SerializableStdPair<_T>) {
@@ -519,6 +519,10 @@ __forceinline void BSerializer::Serialize(void*& Data, const _T& Value) {
         memcpy(Data, &v2, sizeof(_T));
         Data = ((_T*)Data + 1);
     }
+    else if constexpr (Trivial<_T>) {
+        memcpy(Data, &Value, sizeof(_T));
+        Data = ((_T*)Data + 1);
+    }
     else if constexpr (SerializableStdPair<_T>) {
         Serialize(Data, Value.first);
         Serialize(Data, Value.second);
@@ -607,6 +611,10 @@ __forceinline void BSerializer::Deserialize(const void*& Data, void* Value) {
     }
     else if constexpr (Arithmetic<_T>) {
         new (Value) _T(ToFromLittleEndian(*(_T*)Data));
+        Data = ((_T*)Data) + 1;
+    }
+    else if constexpr (Trivial<_T>) {
+        memcpy(Value, Data, sizeof(_T));
         Data = ((_T*)Data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {

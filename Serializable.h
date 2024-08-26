@@ -271,7 +271,7 @@ namespace BSerializer {
         template <typename _T>
         struct isSerializable
             : std::bool_constant<
-                std::is_arithmetic_v<_T> ||
+                std::is_trivial_v<_T> ||
                 isSerializableStdPair<_T>::value ||
                 isSerializableStdTuple<_T>::value ||
                 isSerializableCollection<_T>::value ||
@@ -293,6 +293,14 @@ namespace BSerializer {
      */
     template <typename _T>
     concept Arithmetic = std::is_arithmetic_v<_T>;
+
+    /**
+     * @brief Concept to check if a type is trivial.
+     *
+     * @tparam _T The type whose conformity is evaluated.
+     */
+    template <typename _T>
+    concept Trivial = std::is_trivial_v<_T>;
     
     /**
      * @brief Concept to check if a type is any std::pair<..., ...>.
@@ -418,7 +426,7 @@ namespace BSerializer {
      * @brief Concept to check if a type is serializable by BSerializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
-     * - It satisfies BSerializer::Arithmetic (is integral or floating-point).
+     * - It satisfies BSerializer::Trivial (is trivial).
      * - It satisfies BSerializer::SerializableStdPair (is any std::pair<..., ...> and the types of its values are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableStdTuple (is any std::tuple<...> and the types of its values are [de]serializable by BSerializer).
      * - It satisfies BSerializer::SerializableCollection (is a BSerializer::Collection and the types of its elements are [de]serializable by BSerializer).
