@@ -135,8 +135,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Serializable.h" />
-    <ClInclude Include="Serializer.h" />
+    <ClInclude Include="serializable.h" />
+    <ClInclude Include="serializer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
