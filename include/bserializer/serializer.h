@@ -5,9 +5,10 @@
 #include <utility>
 #include <tuple>
 #include <exception>
-#include "Serializable.h"
 
-namespace BSerializer {
+#include "serializable.h"
+
+namespace bserializer {
     namespace details {
         template <typename _T>
         __forceinline void addRef(_T& Ref, _T Val);
