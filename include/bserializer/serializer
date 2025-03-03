@@ -6,7 +6,7 @@
 #include <tuple>
 #include <exception>
 
-#include "serializable.h"
+#include "serializable"
 
 namespace bserializer {
     namespace details {

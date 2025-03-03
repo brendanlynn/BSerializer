@@ -2,7 +2,7 @@
 #include <iostream>
 #include <unordered_set>
 
-#include <bserializer/serializer.cpp>
+#include <bserializer/serializer>
 
 bool uint64_roundtrip() {
     std::uint64_t x = 24523485222452345;
