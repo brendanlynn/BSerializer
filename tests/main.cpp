@@ -41,12 +41,12 @@ bool unorderedset_roundtrip() {
 
 int main() {
     if (!uint64_roundtrip()) {
-        std::cout << "`std::uint64` failed.";
+        std::cout << "`std::uint64` failed.\n";
         return 1;
     }
     if (!unorderedset_roundtrip()) {
-        std::cout << "`std::unordered_set<std::uint64_t>` failed.";
+        std::cout << "`std::unordered_set<std::uint64_t>` failed.\n";
         return 1;
     }
-    std::cout << "All tests completed successfully.";
+    std::cout << "All tests completed successfully.\n";
 }
