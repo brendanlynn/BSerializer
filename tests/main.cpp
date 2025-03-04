@@ -9,13 +9,13 @@ bool uint64_roundtrip() {
     if (bserializer::SerializedSize(x) != 8)
         return false;
     char c[8];
-    char* cx = c;
+    void* cx = c;
     bserializer::Serialize(cx, x);
-    if (cx - c != 8)
+    if ((char*)cx - c != 8)
         return false;
     cx = c;
     std::uint64_t y = bserializer::Deserialize<std::uint64_t>(cx);
-    if (cx - c != 8)
+    if ((char*)cx - c != 8)
         return false;
     return x == y;
 }
@@ -28,13 +28,13 @@ bool unorderedset_roundtrip() {
     if (bserializer::SerializedSize(x) != 32)
         return false;
     char c[32];
-    char* cx = c;
+    void* cx = c;
     bserializer::Serialize(cx, x);
-    if (cx - c != 32)
+    if ((char*)cx - c != 32)
         return false;
     cx = c;
     std::unordered_set<std::uint64_t> y = bserializer::Deserialize<std::unordered_set<std::uint64_t>>(cx);
-    if (cx - c != 32)
+    if ((char*)cx - c != 32)
         return false;
     return x == y;
 }
@@ -48,4 +48,5 @@ int main() {
         std::cout << "`std::unordered_set<std::uint64_t>` failed.";
         return 1;
     }
+    std::cout << "All tests completed successfully.";
 }
