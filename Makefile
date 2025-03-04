@@ -1,9 +1,12 @@
+-include local_environment.mk
+
 # Project name
-PROJECT = bserializer
+PROJECT_NAME = bserializer
 
 # Compiler and flags
 CXX = cl
-CXXFLAGS = /std:c++20 /O2 /W4 /I include
+CXXFLAGS = /std:c++20 /O2 /W4 /I include /EHsc
+LDFLAGS =
 
 # Directories
 SRC_DIR = src
@@ -22,49 +25,42 @@ CPP_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.obj, $(CPP_SOURCES))
 TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.cpp, $(BUILD_DIR)/%.obj, $(TEST_SOURCES))
 
 # Library output
-STATIC_LIB = $(LIB_DIR)/$(PROJECT).lib
-SHARED_LIB = $(BIN_DIR)/$(PROJECT).dll
-TEST_EXECUTABLE = $(BIN_DIR)/$(PROJECT)_tests.exe
+STATIC_LIB = $(BIN_DIR)/$(PROJECT_NAME).lib
+TEST_EXECUTABLE = $(BIN_DIR)/$(PROJECT_NAME)_tests.exe
 
 # Default target
-all: $(STATIC_LIB) $(SHARED_LIB)
+all: $(if $(CPP_SOURCES), $(STATIC_LIB) $(SHARED_LIB),) $(TEST_EXECUTABLE)
 
 # Compile C++ source files
 $(BUILD_DIR)/%.obj: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Build static library (.lib)
-$(STATIC_LIB): $(CU_OBJECTS) $(CPP_OBJECTS) | $(LIB_DIR)
+$(STATIC_LIB):  $(CPP_OBJECTS) | $(BIN_DIR)
 	lib /OUT:$@ $^
-
-# Build dynamic library (.dll)
-$(SHARED_LIB): $(CU_OBJECTS) $(CPP_OBJECTS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $^ /Fe$@ /LD $(LDFLAGS)
 
 # Compile tests
 $(BUILD_DIR)/%.obj: $(TESTS_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Link test executable (depends on static library)
-$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(STATIC_LIB) | $(BIN_DIR)
+$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(if $(CPP_SOURCES), $(STATIC_LIB),) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ /Fe$@ $(LDFLAGS)
 
 # Run tests
 check: $(TEST_EXECUTABLE)
 	$(TEST_EXECUTABLE)
 
-# Create necessary directories
+# Create output directories
 $(BUILD_DIR):
-	mkdir $(BUILD_DIR)
+	@mkdir $(BUILD_DIR)
 
 $(BIN_DIR):
-	mkdir $(BIN_DIR)
-
-$(LIB_DIR):
-	mkdir $(LIB_DIR)
+	@mkdir $(BIN_DIR)
 
 # Clean build files
 clean:
-	rd /s /q $(BUILD_DIR) $(BIN_DIR) $(LIB_DIR)
+	if exist $(BUILD_DIR) rd /s /q $(BUILD_DIR);
+	if exist $(BIN_DIR) rd /s /q $(BIN_DIR);
 
 .PHONY: all clean check
