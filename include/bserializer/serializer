@@ -11,10 +11,15 @@
 namespace bserializer {
     namespace details {
         template <typename _T>
-        inline static void AddRef(_T& ref, _T val);
+        inline static void AddRef(_T& ref, _T val) {
+            ref += val;
+        }
 
         template <typename _T>
-        inline static void ByteSwap(_T& bytes);
+        inline static void ByteSwap(_T& bytes) {
+            char* bytes2 = (char*)&bytes;
+            std::reverse(bytes2, bytes2 + sizeof(_T));
+        }
 
         template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
         struct TupleDeserializer2 {
@@ -278,17 +283,6 @@ namespace bserializer {
      * @param[in] length The quantity of elements in the array.
      */
     static inline void DeserializeRaw(const void*& data, void* lower, std::size_t length);
-}
-
-template <typename _T>
-inline void bserializer::details::AddRef(_T& ref, _T val) {
-    ref += val;
-}
-
-template <typename _T>
-inline void bserializer::details::ByteSwap(_T& bytes) {
-    char* bytes2 = (char*)&bytes;
-    std::reverse(bytes2, bytes2 + sizeof(_T));
 }
 
 template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
