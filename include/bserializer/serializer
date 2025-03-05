@@ -11,411 +11,411 @@
 namespace bserializer {
     namespace details {
         template <typename _T>
-        inline static void addRef(_T& Ref, _T Val);
+        inline static void AddRef(_T& ref, _T val);
 
         template <typename _T>
-        inline static void byteSwap(_T& Bytes);
+        inline static void ByteSwap(_T& bytes);
 
         template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
-        struct tupleDeserializer2 {
-            inline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
+        struct TupleDeserializer2 {
+            inline static void DeserializeTuple(const void*& data, _TTuple& tuple);
         };
 
         template <typename _TTuple>
-        struct tupleDeserializer;
+        struct TupleDeserializer;
 
         template <typename _TFirst, typename... _TsAll>
-        struct tupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
-            : tupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
+        struct TupleDeserializer<std::tuple<_TFirst, _TsAll...>> final
+            : TupleDeserializer2<std::tuple<_TFirst, _TsAll...>, 0, _TFirst, _TsAll...> { };
 
         template <typename _TTuple>
-        inline static void DeserializeTuple(const void*& Data, _TTuple& Tuple);
+        inline static void DeserializeTuple(const void*& data, _TTuple& tuple);
 
         template <std::size_t _Index, typename... _Ts>
-        struct variantHelper2 {
-            static std::size_t SerializedSize(const std::variant<_Ts...>& Variant);
+        struct VariantHelper2 {
+            static std::size_t SerializedSize(const std::variant<_Ts...>& variant);
 
-            static void Serialize(void*& Data, const std::variant<_Ts...>& Variant);
+            static void Serialize(void*& data, const std::variant<_Ts...>& variant);
 
-            static void Deserialize(const void*& Data, std::size_t Index, std::variant<_Ts...>* Variant);
+            static void Deserialize(const void*& data, std::size_t index, std::variant<_Ts...>* variant);
         };
 
         template <typename _T>
-        struct variantHelper;
+        struct VariantHelper;
 
         template <typename... _Ts>
-        struct variantHelper<std::variant<_Ts...>>
-            : variantHelper2<0, _Ts...> { };
+        struct VariantHelper<std::variant<_Ts...>>
+            : VariantHelper2<0, _Ts...> { };
 
         template <typename _TVariant>
-        static std::size_t variantSerializedSize(const _TVariant& Variant);
+        static std::size_t VariantSerializedSize(const _TVariant& variant);
 
         template <typename _TVariant>
-        static void variantSerialize(void*& Data, const _TVariant& Variant);
+        static void VariantSerialize(void*& data, const _TVariant& variant);
 
         template <typename _TVariant>
-        static void variantDeserialize(const void*& Data, _TVariant* Variant);
+        static void VariantDeserialize(const void*& data, _TVariant* variant);
     }
 
     /**
-     * @brief If the architecture is big-endian, the function will reverse the order of the bytes of Value. If not, the function returns the value it was given.
+     * @brief If the architecture is big-endian, the function will reverse the order of the bytes of value. If not, the function returns the value it was given.
      * @tparam _T The type of the value.
-     * @param[in] Value The value whose bytes are conditionally reversed.
+     * @param[in] value The value whose bytes are conditionally reversed.
      * @return The resulting value.
      */
     template <typename _T>
-    static inline _T ToFromLittleEndian(_T Value);
+    static inline _T ToFromLittleEndian(_T value);
     /**
      * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
      * @tparam _T The type of the array elements.
-     * @param[in,out] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in,out] Upper A pointer to the exclusive upper bound of the array.
+     * @param[in,out] lower A pointer to the inclusive lower bound of the array.
+     * @param[in,out] upper A pointer to the exclusive upper bound of the array.
      */
     template <typename _T>
-    static inline void ToFromLittleEndian(_T* Lower, _T* Upper);
+    static inline void ToFromLittleEndian(_T* lower, _T* upper);
     /**
      * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
      * @tparam _T The type of the array elements.
-     * @param[in,out] Array A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[in,out] array A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      */
     template <typename _T>
-    static inline void ToFromLittleEndian(_T* Array, std::size_t Length);
+    static inline void ToFromLittleEndian(_T* array, std::size_t length);
 
     /**
      * @brief Returns what the serialized size of a value in memory would be if it were serialized.
      * @tparam _T The type of the value. _T must conform to bserializer::Serializable.
-     * @param[in] Value The value whose serialized size will be precalculated.
+     * @param[in] value The value whose serialized size will be precalculated.
      * @return What the serialized size of a value in memory would be if it were serialized.
      */
     template <Serializable _T>
-    static inline std::size_t SerializedSize(const _T& Value);
+    static inline std::size_t SerializedSize(const _T& value);
     /**
      * @brief Serializes a value.
      * @tparam _T The type of the value serialized. _T must conform to bserializer::Serializable.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Value The value to serialize.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] value The value to serialize.
      */
     template <Serializable _T>
-    static inline void Serialize(void*& Data, const _T& Value);
+    static inline void Serialize(void*& data, const _T& value);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
      * @return The deserialized value.
      */
     template <Serializable _T>
-    static inline _T Deserialize(const void*& Data);
+    static inline _T Deserialize(const void*& data);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <Serializable _T>
-    static inline void Deserialize(const void*& Data, _T* Value);
+    static inline void Deserialize(const void*& data, _T* value);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <Serializable _T>
-    static inline void Deserialize(const void*& Data, void* Value);
+    static inline void Deserialize(const void*& data, void* value);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
      * @return The deserialized value.
      */
     template <Serializable _T>
-    static inline _T Deserialize(void*& Data);
+    static inline _T Deserialize(void*& data);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <Serializable _T>
-    static inline void Deserialize(void*& Data, _T* Value);
+    static inline void Deserialize(void*& data, _T* value);
     /**
      * @brief Deserializes a value.
      * @tparam _T The type of the value deserialized. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <Serializable _T>
-    static inline void Deserialize(void*& Data, void* Value);
+    static inline void Deserialize(void*& data, void* value);
 
     /**
      * @brief Returns what the serialized size of an array of values in memory would be if it were serialized.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[in] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Upper A pointer to the exclusive upper bound of the array.
+     * @param[in] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] upper A pointer to the exclusive upper bound of the array.
      * @return What the serialized size of the array in memory would be if it were serialized.
      */
     template <Serializable _T>
-    static inline std::size_t SerializedArraySize(const _T* Lower, const _T* Upper);
+    static inline std::size_t SerializedArraySize(const _T* lower, const _T* upper);
     /**
      * @brief Returns what the serialized size of an array of values in memory would be if it were serialized.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[in] Array A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[in] array A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      * @return What the serialized size of the array in memory would be if it were serialized.
      */
     template <Serializable _T>
-    static inline std::size_t SerializedArraySize(const _T* Array, std::size_t Length);
+    static inline std::size_t SerializedArraySize(const _T* array, std::size_t length);
     /**
      * @brief Serializes an array of values.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Upper A pointer to the exclusive upper bound of the array.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] upper A pointer to the exclusive upper bound of the array.
      */
     template <Serializable _T>
-    static inline void SerializeArray(void*& Data, const _T* Lower, const _T* Upper);
+    static inline void SerializeArray(void*& data, const _T* lower, const _T* upper);
     /**
      * @brief Serializes an array of values.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Array A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] array A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      */
     template <Serializable _T>
-    static inline void SerializeArray(void*& Data, const _T* Array, std::size_t Length);
+    static inline void SerializeArray(void*& data, const _T* array, std::size_t length);
     /**
      * @brief Deserializes an array of values.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Lower A pointer to the inclusive lower bound of the array.
-     * @param[out] Upper A pointer to the exclusive upper bound of the array.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] lower A pointer to the inclusive lower bound of the array.
+     * @param[out] upper A pointer to the exclusive upper bound of the array.
      */
     template <Serializable _T>
-    static inline void DeserializeArray(const void*& Data, _T* Lower, _T* Upper);
+    static inline void DeserializeArray(const void*& data, _T* lower, _T* upper);
     /**
      * @brief Deserializes an array of values.
      * @tparam _T The type of the array elements. _T must conform to bserializer::Serializable.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Array A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] array A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      */
     template <Serializable _T>
-    static inline void DeserializeArray(const void*& Data, _T* Array, std::size_t Length);
+    static inline void DeserializeArray(const void*& data, _T* array, std::size_t length);
 
     /**
      * @brief Returns the size of the raw serialized data. After serialization, the pointer will be adjusted by the size of the data written.
      * @tparam _T The type of the value.
-     * @param[in] Value The value to be serialized.
+     * @param[in] value The value to be serialized.
      * @return The size of the raw serialized data.
      */
     template <typename _T>
-    static inline std::size_t SerializedRawSize(const _T& Value);
+    static inline std::size_t SerializedRawSize(const _T& value);
     /**
      * @brief Serializes a value into raw data.
      * @tparam _T The type of the value.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Value The value to be serialized.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] value The value to be serialized.
      */
     template <typename _T>
-    static inline void SerializeRaw(void*& Data, const _T& Value);
+    static inline void SerializeRaw(void*& data, const _T& value);
     /**
      * @brief Deserializes a value from raw data.
      * @tparam _T The type of the value.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
      * @return The deserialized value.
      */
     template <typename _T>
-    static inline _T DeserializeRaw(const void*& Data);
+    static inline _T DeserializeRaw(const void*& data);
     /**
      * @brief Deserializes a value from raw data.
      * @tparam _T The type of the value.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <typename _T>
-    static inline void DeserializeRaw(const void*& Data, _T* Value);
+    static inline void DeserializeRaw(const void*& data, _T* value);
     /**
      * @brief Deserializes a value from raw data.
      * @tparam _T The type of the value.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Value A pointer to the location in memory in which the deserialized value will be placed.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] value A pointer to the location in memory in which the deserialized value will be placed.
      */
     template <typename _T>
-    static inline void DeserializeRaw(const void*& Data, void* Value);
+    static inline void DeserializeRaw(const void*& data, void* value);
 
     /**
      * @brief Returns the size of the raw serialized data for an array.
-     * @param[in] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Upper A pointer to the exclusive upper bound of the array.
+     * @param[in] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] upper A pointer to the exclusive upper bound of the array.
      * @return The size of the raw serialized data for the array.
      */
-    static inline std::size_t SerializedRawSize(const void* Lower, const void* Upper);
+    static inline std::size_t SerializedRawSize(const void* lower, const void* upper);
     /**
      * @brief Serializes an array into raw data.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Upper A pointer to the exclusive upper bound of the array.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] upper A pointer to the exclusive upper bound of the array.
      */
-    static inline void SerializeRaw(void*& Data, const void* Lower, const void* Upper);
+    static inline void SerializeRaw(void*& data, const void* lower, const void* upper);
     /**
      * @brief Serializes an array into raw data.
-     * @param[out] Data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
-     * @param[in] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[out] data A pointer to the destination of the serialized data. After serialization, the pointer will be adjusted by the size of the data written.
+     * @param[in] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      */
-    static inline void SerializeRaw(void*& Data, const void* Lower, std::size_t Length);
+    static inline void SerializeRaw(void*& data, const void* lower, std::size_t length);
     /**
      * @brief Deserializes an array from raw data.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Lower A pointer to the inclusive lower bound of the array.
-     * @param[out] Upper A pointer to the exclusive upper bound of the array.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] lower A pointer to the inclusive lower bound of the array.
+     * @param[out] upper A pointer to the exclusive upper bound of the array.
      */
-    static inline void DeserializeRaw(const void*& Data, void* Lower, void* Upper);
+    static inline void DeserializeRaw(const void*& data, void* lower, void* upper);
     /**
      * @brief Deserializes an array from raw data.
-     * @param[in,out] Data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
-     * @param[out] Lower A pointer to the inclusive lower bound of the array.
-     * @param[in] Length The quantity of elements in the array.
+     * @param[in,out] data A pointer to the source of the serialized data. After serialization, the pointer will be adjusted by the size of the data read.
+     * @param[out] lower A pointer to the inclusive lower bound of the array.
+     * @param[in] length The quantity of elements in the array.
      */
-    static inline void DeserializeRaw(const void*& Data, void* Lower, std::size_t Length);
+    static inline void DeserializeRaw(const void*& data, void* lower, std::size_t length);
 }
 
 template <typename _T>
-inline void bserializer::details::addRef(_T& Ref, _T Val) {
-    Ref += Val;
+inline void bserializer::details::AddRef(_T& ref, _T val) {
+    ref += val;
 }
 
 template <typename _T>
-inline void bserializer::details::byteSwap(_T& Bytes) {
-    std::byte* bytes = (std::byte*)&Bytes;
-    std::reverse(bytes, bytes + sizeof(_T));
+inline void bserializer::details::ByteSwap(_T& bytes) {
+    char* bytes2 = (char*)&bytes;
+    std::reverse(bytes2, bytes2 + sizeof(_T));
 }
 
 template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
-inline void bserializer::details::tupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
-    _TFirst& v = std::get<_Index>(Tuple);
-    Deserialize<_TFirst>(Data, &v);
+inline void bserializer::details::TupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& data, _TTuple& tuple) {
+    _TFirst& v = std::get<_Index>(tuple);
+    Deserialize<_TFirst>(data, &v);
     if constexpr (sizeof...(_TsAll)) {
-        tupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(Data, Tuple);
+        TupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(data, tuple);
     }
 }
 
 template <typename _TTuple>
-inline static void bserializer::details::DeserializeTuple(const void*& Data, _TTuple& Tuple) {
-    tupleDeserializer<_TTuple>::DeserializeTuple(Data, Tuple);
+inline static void bserializer::details::DeserializeTuple(const void*& data, _TTuple& tuple) {
+    TupleDeserializer<_TTuple>::DeserializeTuple(data, tuple);
 }
 
 template <std::size_t _Index, typename... _Ts>
-std::size_t bserializer::details::variantHelper2<_Index, _Ts...>::SerializedSize(const std::variant<_Ts...>& Variant) {
+std::size_t bserializer::details::VariantHelper2<_Index, _Ts...>::SerializedSize(const std::variant<_Ts...>& variant) {
     if constexpr (_Index >= sizeof...(_Ts)) {
         if constexpr ((std::same_as<std::monostate, _Ts> || ...)) return sizeof(std::size_t);
-        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'Variant' is invalid.");
+        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
     }
-    else if (Variant.index() == _Index) {
+    else if (variant.index() == _Index) {
         using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
         if constexpr (std::same_as<element_t, std::monostate>) return sizeof(std::size_t);
-        else return sizeof(std::size_t) + bserializer::SerializedSize(std::get<_Index>(Variant));
+        else return sizeof(std::size_t) + bserializer::SerializedSize(std::get<_Index>(variant));
     }
     else {
-        return variantHelper2<_Index + 1, _Ts...>::SerializedSize(Variant);
+        return VariantHelper2<_Index + 1, _Ts...>::SerializedSize(variant);
     }
 }
 
 template <std::size_t _Index, typename... _Ts>
-void bserializer::details::variantHelper2<_Index, _Ts...>::Serialize(void*& Data, const std::variant<_Ts...>& Variant) {
+void bserializer::details::VariantHelper2<_Index, _Ts...>::Serialize(void*& data, const std::variant<_Ts...>& variant) {
     if constexpr (_Index >= sizeof...(_Ts)) {
         if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
-            bserializer::Serialize(Data, (std::size_t)0 - (std::size_t)1);
+            bserializer::Serialize(data, (std::size_t)0 - (std::size_t)1);
         }
-        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'Variant' is invalid.");
+        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
     }
-    else if (Variant.index() == _Index) {
+    else if (variant.index() == _Index) {
         using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
-        bserializer::Serialize(Data, _Index);
+        bserializer::Serialize(data, _Index);
         if constexpr (!std::same_as<element_t, std::monostate>) {
-            bserializer::Serialize(Data, std::get<_Index>(Variant));
+            bserializer::Serialize(data, std::get<_Index>(variant));
         }
     }
     else {
-        variantHelper2<_Index + 1, _Ts...>::Serialize(Data, Variant);
+        VariantHelper2<_Index + 1, _Ts...>::Serialize(data, variant);
     }
 }
 
 template <std::size_t _Index, typename... _Ts>
-void bserializer::details::variantHelper2<_Index, _Ts...>::Deserialize(const void*& Data, std::size_t Index, std::variant<_Ts...>* Variant) {
+void bserializer::details::VariantHelper2<_Index, _Ts...>::Deserialize(const void*& data, std::size_t index, std::variant<_Ts...>* variant) {
     if constexpr (_Index >= sizeof...(_Ts)) {
         if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
-            new (Variant) std::variant<_Ts...>(std::monostate());
+            new (variant) std::variant<_Ts...>(std::monostate());
         }
         else {
             throw std::out_of_range("Deserialized index is out of bounds.");
         }
     }
-    else if (Index == _Index) {
+    else if (index == _Index) {
         using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
         if constexpr (std::same_as<element_t, std::monostate>) {
-            new (Variant) std::variant<_Ts...>(std::monostate());
+            new (variant) std::variant<_Ts...>(std::monostate());
         }
         else {
-            new (Variant) std::variant<_Ts...>(bserializer::Deserialize<element_t>(Data));
+            new (variant) std::variant<_Ts...>(bserializer::Deserialize<element_t>(data));
         }
     }
     else {
-        variantHelper2<_Index + 1, _Ts...>::Deserialize(Data, Index, Variant);
+        VariantHelper2<_Index + 1, _Ts...>::Deserialize(data, index, variant);
     }
 }
 
 template <typename _TVariant>
-std::size_t bserializer::details::variantSerializedSize(const _TVariant& Variant) {
-    return variantHelper<_TVariant>::SerializedSize(Variant);
+std::size_t bserializer::details::VariantSerializedSize(const _TVariant& variant) {
+    return VariantHelper<_TVariant>::SerializedSize(variant);
 }
 
 template <typename _TVariant>
-void bserializer::details::variantSerialize(void*& Data, const _TVariant& Variant) {
-    variantHelper<_TVariant>::Serialize(Data, Variant);
+void bserializer::details::VariantSerialize(void*& data, const _TVariant& variant) {
+    VariantHelper<_TVariant>::Serialize(data, variant);
 }
 
 template <typename _TVariant>
-void bserializer::details::variantDeserialize(const void*& Data, _TVariant* Variant) {
-    std::size_t idx = bserializer::Deserialize<std::size_t>(Data);
-    variantHelper<_TVariant>::Deserialize(Data, idx, Variant);
+void bserializer::details::VariantDeserialize(const void*& data, _TVariant* variant) {
+    std::size_t idx = bserializer::Deserialize<std::size_t>(data);
+    VariantHelper<_TVariant>::Deserialize(data, idx, variant);
 }
 
 template <typename _T>
-inline _T bserializer::ToFromLittleEndian(_T Value) {
-    if constexpr (std::endian::native == std::endian::big) details::byteSwap(Value);
-    return Value;
+inline _T bserializer::ToFromLittleEndian(_T value) {
+    if constexpr (std::endian::native == std::endian::big) details::byteSwap(value);
+    return value;
 }
 
 template <typename _T>
-inline void bserializer::ToFromLittleEndian(_T* Lower, _T* Upper) {
+inline void bserializer::ToFromLittleEndian(_T* lower, _T* upper) {
     if constexpr (std::endian::native == std::endian::big) {
-        for (; Lower < Upper; ++Lower) {
-            details::byteSwap(*Lower);
+        for (; lower < upper; ++lower) {
+            details::byteSwap(*lower);
         }
     }
 }
 
 template <typename _T>
-inline void bserializer::ToFromLittleEndian(_T* Array, std::size_t Length) {
-    ToFromLittleEndian(Array, Array + Length);
+inline void bserializer::ToFromLittleEndian(_T* array, std::size_t length) {
+    ToFromLittleEndian(array, array + length);
 }
 
 template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedSize(const _T& Value) {
+inline std::size_t bserializer::SerializedSize(const _T& value) {
     if constexpr (BuiltInSerializable<_T>) {
-        return Value.SerializedSize();
+        return value.SerializedSize();
     }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
         std::size_t t = sizeof(std::size_t);
         if constexpr (std::same_as<value_t, bool>) {
-            std::size_t s = Value.size();
+            std::size_t s = value.size();
             t += s >> 3;
             if (s & 7) t += 1;
         }
         else {
-            for (auto& v : Value) {
+            for (auto& v : value) {
                 t += SerializedSize(v);
             }
         }
@@ -426,58 +426,58 @@ inline std::size_t bserializer::SerializedSize(const _T& Value) {
     }
     else if constexpr (SerializableStdPair<_T>) {
         return
-            SerializedSize(Value.first) +
-            SerializedSize(Value.second);
+            SerializedSize(value.first) +
+            SerializedSize(value.second);
     }
     else if constexpr (SerializableStdTuple<_T>) {
         std::size_t t = 0;
         std::apply([&t](const auto&... args) {
             (details::addRef(t, SerializedSize(args)), ...);
-        }, Value);
+        }, value);
         return t;
     }
     else if constexpr (StdComplex<_T>) {
-        return sizeof(decltype(Value.real())) << 1;
+        return sizeof(decltype(value.real())) << 1;
     }
     else if constexpr (SerializableStdArray<_T>) {
         std::size_t t = 0;
-        for (auto& e : Value) t += SerializedSize(e);
+        for (auto& e : value) t += SerializedSize(e);
         return t;
     }
     else if constexpr (SerializableStdOptional<_T>) {
-        if (Value) {
-            return sizeof(bool) + SerializedSize(*Value);
+        if (value) {
+            return sizeof(bool) + SerializedSize(*value);
         }
         else return sizeof(bool);
     }
     else if constexpr (SerializableStdVariant<_T>) {
-        return details::variantSerializedSize(Value);
+        return details::VariantSerializedSize(value);
     }
     else if constexpr (StdDuration<_T>) {
-        return sizeof(decltype(Value.count()));
+        return sizeof(decltype(value.count()));
     }
     else if constexpr (StdTimePoint<_T>) {
-        return sizeof(decltype(Value.time_since_epoch().count()));
+        return sizeof(decltype(value.time_since_epoch().count()));
     }
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::Serialize(void*& Data, const _T& Value) {
+inline void bserializer::Serialize(void*& data, const _T& value) {
     if constexpr (BuiltInSerializable<_T>) {
-        Value.Serialize(Data);
+        value.Serialize(data);
     }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
-        std::size_t len = Value.size();
-        Serialize(Data, len);
+        std::size_t len = value.size();
+        Serialize(data, len);
         if (len) {
             if constexpr (std::same_as<value_t, bool>) {
                 uint64_t m = 1;
                 uint64_t c = 0;
-                if constexpr (std::same_as<decltype(*Value.cbegin()), bool>) {
-                    for (bool v : Value) {
+                if constexpr (std::same_as<decltype(*value.cbegin()), bool>) {
+                    for (bool v : value) {
                         if (!m) {
-                            Serialize(Data, c);
+                            Serialize(data, c);
                             m = 1;
                             c = 0;
                         }
@@ -486,9 +486,9 @@ inline void bserializer::Serialize(void*& Data, const _T& Value) {
                     }
                 }
                 else {
-                    for (auto& v : Value) {
+                    for (auto& v : value) {
                         if (!m) {
-                            Serialize(Data, c);
+                            Serialize(data, c);
                             m = 1;
                             c = 0;
                         }
@@ -507,74 +507,74 @@ inline void bserializer::Serialize(void*& Data, const _T& Value) {
                     else if (!(c >> 56)) i = 7;
                     else i = 8;
                     if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
-                    memcpy(Data, &c, i);
-                    Data = ((char*)Data) + i;
+                    memcpy(data, &c, i);
+                    data = ((char*)data) + i;
                 }
-                else Serialize(Data, c);
+                else Serialize(data, c);
             }
-            else for (auto& v : Value) Serialize(Data, v);
+            else for (auto& v : value) Serialize(data, v);
         }
     }
     else if constexpr (Arithmetic<_T>) {
-        _T v2 = ToFromLittleEndian(Value);
-        memcpy(Data, &v2, sizeof(_T));
-        Data = ((_T*)Data + 1);
+        _T v2 = ToFromLittleEndian(value);
+        memcpy(data, &v2, sizeof(_T));
+        data = ((_T*)data + 1);
     }
     else if constexpr (SerializableStdPair<_T>) {
-        Serialize(Data, Value.first);
-        Serialize(Data, Value.second);
+        Serialize(data, value.first);
+        Serialize(data, value.second);
     }
     else if constexpr (SerializableStdTuple<_T>) {
-        std::apply([&Data](const auto&... args) {
-            (Serialize(Data, args), ...);
-        }, Value);
+        std::apply([&data](const auto&... args) {
+            (Serialize(data, args), ...);
+        }, value);
     }
     else if constexpr (StdComplex<_T>) {
-        Serialize(Data, Value.real());
-        Serialize(Data, Value.imag());
+        Serialize(data, value.real());
+        Serialize(data, value.imag());
     }
     else if constexpr (SerializableStdArray<_T>) {
-        for (auto& e : Value) Serialize(Data, e);
+        for (auto& e : value) Serialize(data, e);
     }
     else if constexpr (SerializableStdOptional<_T>) {
-        if (Value) {
-            Serialize(Data, true);
-            Serialize(Data, *Value);
+        if (value) {
+            Serialize(data, true);
+            Serialize(data, *value);
         }
-        else Serialize(Data, false);
+        else Serialize(data, false);
     }
     else if constexpr (SerializableStdVariant<_T>) {
-        details::variantSerialize(Data, Value);
+        details::VariantSerialize(data, value);
     }
     else if constexpr (StdDuration<_T>) {
-        Serialize(Data, Value.count());
+        Serialize(data, value.count());
     }
     else if constexpr (StdTimePoint<_T>) {
-        Serialize(Data, Value.time_since_epoch());
+        Serialize(data, value.time_since_epoch());
     }
 }
 
 template <bserializer::Serializable _T>
-inline _T bserializer::Deserialize(const void*& Data) {
+inline _T bserializer::Deserialize(const void*& data) {
     char bytes[sizeof(_T)];
     _T& r = *(_T*)bytes;
-    Deserialize(Data, &r);
+    Deserialize(data, &r);
     return r;
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(const void*& Data, _T* Value) {
-    Deserialize<_T>(Data, *(void**)&Value);
+inline void bserializer::Deserialize(const void*& data, _T* value) {
+    Deserialize<_T>(data, *(void**)&value);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(const void*& Data, void* Value) {
+inline void bserializer::Deserialize(const void*& data, void* value) {
     if constexpr (BuiltInSerializable<_T>) {
-        _T::Deserialize(Data, Value);
+        _T::Deserialize(data, value);
     }
     else if constexpr (SerializableCollection<_T>) {
         using value_t = typename _T::value_type;
-        std::size_t len = Deserialize<std::size_t>(Data);
+        std::size_t len = Deserialize<std::size_t>(data);
         value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
         value_t* b = arr + len;
         if constexpr (std::same_as<value_t, bool>) {
@@ -584,7 +584,7 @@ inline void bserializer::Deserialize(const void*& Data, void* Value) {
             for (bool* p_v = arr; p_v < fb; ++p_v) {
                 if (!m) {
                     m = 1;
-                    Deserialize(Data, &c);
+                    Deserialize(data, &c);
                 }
                 *p_v = (bool)(c & m);
                 m <<= 1;
@@ -592,9 +592,9 @@ inline void bserializer::Deserialize(const void*& Data, void* Value) {
             if (fb != b) {
                 std::size_t i = b - fb;
                 i = (i >> 3) + ((i & 7ui64) ? 1ui64 : 0ui64);
-                memcpy(&c, Data, i);
+                memcpy(&c, data, i);
                 if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
-                Data = ((char*)Data) + i;
+                data = ((char*)data) + i;
                 m = 1;
                 for (bool* p_v = fb; p_v < b; ++p_v) {
                     *p_v = (bool)(c & m);
@@ -602,13 +602,13 @@ inline void bserializer::Deserialize(const void*& Data, void* Value) {
                 }
             }
         }
-        else for (value_t* i = arr; i < b; ++i) Deserialize(Data, i);
-        new (Value) _T(std::initializer_list<value_t>(arr, b));
+        else for (value_t* i = arr; i < b; ++i) Deserialize(data, i);
+        new (value) _T(std::initializer_list<value_t>(arr, b));
         free(arr);
     }
     else if constexpr (Arithmetic<_T>) {
-        new (Value) _T(ToFromLittleEndian(*(_T*)Data));
-        Data = ((_T*)Data) + 1;
+        new (value) _T(ToFromLittleEndian(*(_T*)data));
+        data = ((_T*)data) + 1;
     }
     else if constexpr (SerializableStdPair<_T>) {
         using t1_t = _T::first_type;
@@ -616,161 +616,161 @@ inline void bserializer::Deserialize(const void*& Data, void* Value) {
         if constexpr (sizeof(t1_t) >> 8) {
             t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
             t1_t& v1 = *p_v1;
-            Deserialize(Data, p_v1);
+            Deserialize(data, p_v1);
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
-                Deserialize(Data, p_v2);
-                new (Value) _T(v1, v2);
+                Deserialize(data, p_v2);
+                new (value) _T(v1, v2);
                 free(p_v2);
             }
             else {
-                t2_t v2 = Deserialize<t2_t>(Data);
-                new (Value) _T(v1, v2);
+                t2_t v2 = Deserialize<t2_t>(data);
+                new (value) _T(v1, v2);
             }
             free(p_v1);
         }
         else {
-            t1_t v1 = Deserialize<t1_t>(Data);
+            t1_t v1 = Deserialize<t1_t>(data);
             if constexpr (sizeof(t2_t) >> 8) {
                 t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
                 t2_t& v2 = *p_v2;
-                Deserialize(Data, p_v2);
-                new (Value) _T(v1, v2);
+                Deserialize(data, p_v2);
+                new (value) _T(v1, v2);
                 free(p_v2);
             }
             else {
-                t2_t v2 = Deserialize<t2_t>(Data);
-                new (Value) _T(v1, v2);
+                t2_t v2 = Deserialize<t2_t>(data);
+                new (value) _T(v1, v2);
             }
         }
     }
     else if constexpr (SerializableStdTuple<_T>) {
-        details::DeserializeTuple(Data, *(_T*)Value);
+        details::DeserializeTuple(data, *(_T*)value);
     }
     else if constexpr (StdComplex<_T>) {
         using component_t = decltype(std::declval<_T>().real());
-        component_t re = Deserialize<component_t>(Data);
-        component_t im = Deserialize<component_t>(Data);
-        new (Value) _T(re, im);
+        component_t re = Deserialize<component_t>(data);
+        component_t im = Deserialize<component_t>(data);
+        new (value) _T(re, im);
     }
     else if constexpr (SerializableStdArray<_T>) {
         using value_t = typename _T::value_type;
         constexpr std::size_t size = std::tuple_size_v<_T>;
-        value_t* i = (value_t*)Value;
+        value_t* i = (value_t*)value;
         value_t* upper = i + size;
-        for (; i < upper; ++i) Deserialize(Data, i);
+        for (; i < upper; ++i) Deserialize(data, i);
     }
     else if constexpr (SerializableStdOptional<_T>) {
-        bool v = Deserialize<bool>(Data);
-        if (v) new (Value) _T(Deserialize<typename _T::value_type>(Data));
-        else new (Value) _T;
+        bool v = Deserialize<bool>(data);
+        if (v) new (value) _T(Deserialize<typename _T::value_type>(data));
+        else new (value) _T;
     }
     else if constexpr (SerializableStdVariant<_T>) {
-        details::variantDeserialize(Data, (_T*)Value);
+        details::VariantDeserialize(data, (_T*)value);
     }
     else if constexpr (StdDuration<_T>) {
         using internal_t = decltype(std::declval<_T>().count());
-        new (Value) _T(Deserialize<internal_t>(Data));
+        new (value) _T(Deserialize<internal_t>(data));
     }
     else if constexpr (StdTimePoint<_T>) {
         using internal_t = decltype(std::declval<_T>().time_since_epoch());
-        new (Value) _T(Deserialize<internal_t>(Data));
+        new (value) _T(Deserialize<internal_t>(data));
     }
 }
 
 template <bserializer::Serializable _T>
-inline _T bserializer::Deserialize(void*& Data) {
-    return Deserialize<_T>(const_cast<const void*&>(Data));
+inline _T bserializer::Deserialize(void*& data) {
+    return Deserialize<_T>(const_cast<const void*&>(data));
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(void*& Data, _T* Value) {
-    Deserialize(const_cast<const void*&>(Data), Value);
+inline void bserializer::Deserialize(void*& data, _T* value) {
+    Deserialize(const_cast<const void*&>(data), value);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(void*& Data, void* Value) {
-    Deserialize<_T>(const_cast<const void*&>(Data), Value);
+inline void bserializer::Deserialize(void*& data, void* value) {
+    Deserialize<_T>(const_cast<const void*&>(data), value);
 }
 
 template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedArraySize(const _T* Lower, const _T* Upper) {
+inline std::size_t bserializer::SerializedArraySize(const _T* lower, const _T* upper) {
     std::size_t t = 0;
-    for (; Lower < Upper; ++Lower) t += SerializedSize(*Lower);
+    for (; lower < upper; ++lower) t += SerializedSize(*lower);
     return t;
 }
 
 template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedArraySize(const _T* Array, std::size_t Length) {
-    return SerializedArraySize(Array, Array + Length);
+inline std::size_t bserializer::SerializedArraySize(const _T* array, std::size_t length) {
+    return SerializedArraySize(array, array + length);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::SerializeArray(void*& Data, const _T* Lower, const _T* Upper) {
-    for (; Lower < Upper; ++Lower) Serialize(Data, *Lower);
+inline void bserializer::SerializeArray(void*& data, const _T* lower, const _T* upper) {
+    for (; lower < upper; ++lower) Serialize(data, *lower);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::SerializeArray(void*& Data, const _T* Array, std::size_t Length) {
-    SerializeArray(Data, Array, Array + Length);
+inline void bserializer::SerializeArray(void*& data, const _T* array, std::size_t length) {
+    SerializeArray(data, array, array + length);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::DeserializeArray(const void*& Data, _T* Lower, _T* Upper) {
-    for (; Lower < Upper; ++Lower) *Lower = Deserialize<_T>(Data);
+inline void bserializer::DeserializeArray(const void*& data, _T* lower, _T* upper) {
+    for (; lower < upper; ++lower) *lower = Deserialize<_T>(data);
 }
 
 template <bserializer::Serializable _T>
-inline void bserializer::DeserializeArray(const void*& Data, _T* Array, std::size_t Length) {
-    DeserializeArray(Data, Array, Array + Length);
+inline void bserializer::DeserializeArray(const void*& data, _T* array, std::size_t length) {
+    DeserializeArray(data, array, array + length);
 }
 
 template <typename _T>
-inline std::size_t bserializer::SerializedRawSize(const _T& Value) {
+inline std::size_t bserializer::SerializedRawSize(const _T& value) {
     return sizeof(_T);
 }
 
 template <typename _T>
-inline void bserializer::SerializeRaw(void*& Data, const _T& Value) {
-    SerializeRaw(Data, &Value, sizeof(_T));
+inline void bserializer::SerializeRaw(void*& data, const _T& value) {
+    SerializeRaw(data, &value, sizeof(_T));
 }
 
 template <typename _T>
-inline _T bserializer::DeserializeRaw(const void*& Data) {
+inline _T bserializer::DeserializeRaw(const void*& data) {
     char bytes[sizeof(_T)];
-    DeserializeRaw(Data, bytes, sizeof(_T));
+    DeserializeRaw(data, bytes, sizeof(_T));
     return *(_T*)bytes;
 }
 
 template <typename _T>
-inline void bserializer::DeserializeRaw(const void*& Data, _T* Value) {
-    DeserializeRaw(Data, (void*)Value);
+inline void bserializer::DeserializeRaw(const void*& data, _T* value) {
+    DeserializeRaw(data, (void*)value);
 }
 
 template <typename _T>
-inline void bserializer::DeserializeRaw(const void*& Data, void* Value) {
-    DeserializeRaw(Data, Value, sizeof(_T));
+inline void bserializer::DeserializeRaw(const void*& data, void* value) {
+    DeserializeRaw(data, value, sizeof(_T));
 }
 
-inline std::size_t bserializer::SerializedRawSize(const void* Lower, const void* Upper) {
-    return (char*)Upper - (char*)Lower;
+inline std::size_t bserializer::SerializedRawSize(const void* lower, const void* upper) {
+    return (char*)upper - (char*)lower;
 }
 
-inline void bserializer::SerializeRaw(void*& Data, const void* Lower, const void* Upper) {
-    SerializeRaw(Data, Lower, (char*)Upper - (char*)Lower);
+inline void bserializer::SerializeRaw(void*& data, const void* lower, const void* upper) {
+    SerializeRaw(data, lower, (char*)upper - (char*)lower);
 }
 
-inline void bserializer::SerializeRaw(void*& Data, const void* Lower, std::size_t Length) {
-    memcpy(Data, Lower, Length);
-    Data = ((char*)Data) + Length;
+inline void bserializer::SerializeRaw(void*& data, const void* lower, std::size_t length) {
+    memcpy(data, lower, length);
+    data = ((char*)data) + length;
 }
 
-inline void bserializer::DeserializeRaw(const void*& Data, void* Lower, void* Upper) {
-    DeserializeRaw(Data, Lower, (char*)Upper - (char*)Lower);
+inline void bserializer::DeserializeRaw(const void*& data, void* lower, void* upper) {
+    DeserializeRaw(data, lower, (char*)upper - (char*)lower);
 }
 
-inline void bserializer::DeserializeRaw(const void*& Data, void* Lower, std::size_t Length) {
-    memcpy(Lower, Data, Length);
-    Data = ((char*)Data) + Length;
+inline void bserializer::DeserializeRaw(const void*& data, void* lower, std::size_t length) {
+    memcpy(lower, data, length);
+    data = ((char*)data) + length;
 }
