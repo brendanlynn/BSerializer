@@ -32,7 +32,7 @@ namespace bserializer {
     template <typename _T>
     concept BuiltInSerializable = requires() {
         requires requires (const _T Obj) {
-            { Obj.SerializedSize() } -> std::same_as<size_t>;
+            { Obj.SerializedSize() } -> std::same_as<std::size_t>;
         };
 
         requires requires (const _T Obj, void* Data) {
@@ -213,14 +213,14 @@ namespace bserializer {
         template <typename _T>
         struct isStdArray
             : std::false_type { };
-        template <typename _T, size_t _Size>
+        template <typename _T, std::size_t _Size>
         struct isStdArray<std::array<_T, _Size>>
             : std::true_type { };
 
         template <typename _T>
         struct isSerializableStdArray
             : std::false_type { };
-        template <typename _T, size_t _Size>
+        template <typename _T, std::size_t _Size>
         struct isSerializableStdArray<std::array<_T, _Size>>
             : std::bool_constant<isSerializable<_T>::value> { };
 
