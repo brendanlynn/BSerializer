@@ -32,7 +32,7 @@ TEST_EXECUTABLE = $(BIN_DIR)/$(PROJECT_NAME)_tests.exe
 LIB_FILES = $(wildcard $(LIB_DIR)/*.lib)
 
 # Default target
-all: $(if $(CPP_SOURCES), $(STATIC_LIB) $(SHARED_LIB),) $(TEST_EXECUTABLE)
+all: $(if $(CPP_SOURCES), $(STATIC_LIB) $(SHARED_LIB),) $(if $(TEST_SOURCES), $(TEST_EXECUTABLE),)
 
 # Compile C++ source files
 $(BUILD_DIR)/%.obj: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
@@ -47,12 +47,19 @@ $(BUILD_DIR)/%.obj: $(TESTS_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Link test executable (depends on static library)
+ifneq ($(TEST_SOURCES),)
 $(TEST_EXECUTABLE): $(TEST_OBJECTS) $(if $(CPP_SOURCES), $(STATIC_LIB),) $(LIB_FILES) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ /Fe$@ $(LDFLAGS)
+endif
 
 # Run tests
+ifeq ($(TEST_SOURCES),)
+check:
+	@echo "No tests found."
+else
 check: $(TEST_EXECUTABLE)
 	$(TEST_EXECUTABLE)
+endif
 
 # Create output directories
 $(BUILD_DIR):
