@@ -257,7 +257,7 @@ namespace bserializer {
         struct IsStdDuration
             : std::false_type { };
         template <typename _T, std::intmax_t _Ratio1, std::intmax_t _Ratio2>
-            requires std::Is_arithmetic_v<_T>
+            requires std::is_arithmetic_v<_T>
         struct IsStdDuration<std::chrono::duration<_T, std::ratio<_Ratio1, _Ratio2>>>
             : std::true_type { };
 
@@ -272,7 +272,7 @@ namespace bserializer {
         template <typename _T>
         struct IsSerializable
             : std::bool_constant<
-                std::Is_arithmetic_v<_T> ||
+                std::is_arithmetic_v<_T> ||
                 IsSerializableStdPair<_T>::value ||
                 IsSerializableStdTuple<_T>::value ||
                 IsSerializableCollection<_T>::value ||
