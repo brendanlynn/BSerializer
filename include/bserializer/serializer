@@ -69,7 +69,10 @@ namespace bserializer {
      * @return The resulting value.
      */
     template <typename _T>
-    static inline _T ToFromLittleEndian(_T value);
+    static inline _T ToFromLittleEndian(_T value) {
+        if constexpr (std::endian::native == std::endian::big) details::ByteSwap(value);
+        return value;
+    }
     /**
      * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
      * @tparam _T The type of the array elements.
@@ -77,7 +80,13 @@ namespace bserializer {
      * @param[in,out] upper A pointer to the exclusive upper bound of the array.
      */
     template <typename _T>
-    static inline void ToFromLittleEndian(_T* lower, _T* upper);
+    static inline void ToFromLittleEndian(_T* lower, _T* upper) {
+        if constexpr (std::endian::native == std::endian::big) {
+            for (; lower < upper; ++lower) {
+                details::ByteSwap(*lower);
+            }
+        }
+    }
     /**
      * @brief If the architecture is big-endian, for each value in the array, the function will reverse the order of the bytes in the value. If not, the function does nothing.
      * @tparam _T The type of the array elements.
@@ -85,7 +94,9 @@ namespace bserializer {
      * @param[in] length The quantity of elements in the array.
      */
     template <typename _T>
-    static inline void ToFromLittleEndian(_T* array, std::size_t length);
+    static inline void ToFromLittleEndian(_T* array, std::size_t length) {
+        ToFromLittleEndian(array, array + length);
+    }
 
     /**
      * @brief Returns what the serialized size of a value in memory would be if it were serialized.
@@ -285,486 +296,470 @@ namespace bserializer {
     static inline void DeserializeRaw(const void*& data, void* lower, std::size_t length);
 }
 
-template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
-inline void bserializer::details::TupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& data, _TTuple& tuple) {
-    _TFirst& v = std::get<_Index>(tuple);
-    Deserialize<_TFirst>(data, &v);
-    if constexpr (sizeof...(_TsAll)) {
-        TupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(data, tuple);
-    }
-}
-
-template <typename _TTuple>
-inline static void bserializer::details::DeserializeTuple(const void*& data, _TTuple& tuple) {
-    TupleDeserializer<_TTuple>::DeserializeTuple(data, tuple);
-}
-
-template <std::size_t _Index, typename... _Ts>
-std::size_t bserializer::details::VariantHelper2<_Index, _Ts...>::SerializedSize(const std::variant<_Ts...>& variant) {
-    if constexpr (_Index >= sizeof...(_Ts)) {
-        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) return sizeof(std::size_t);
-        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
-    }
-    else if (variant.index() == _Index) {
-        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
-        if constexpr (std::same_as<element_t, std::monostate>) return sizeof(std::size_t);
-        else return sizeof(std::size_t) + bserializer::SerializedSize(std::get<_Index>(variant));
-    }
-    else {
-        return VariantHelper2<_Index + 1, _Ts...>::SerializedSize(variant);
-    }
-}
-
-template <std::size_t _Index, typename... _Ts>
-void bserializer::details::VariantHelper2<_Index, _Ts...>::Serialize(void*& data, const std::variant<_Ts...>& variant) {
-    if constexpr (_Index >= sizeof...(_Ts)) {
-        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
-            bserializer::Serialize(data, (std::size_t)0 - (std::size_t)1);
-        }
-        else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
-    }
-    else if (variant.index() == _Index) {
-        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
-        bserializer::Serialize(data, _Index);
-        if constexpr (!std::same_as<element_t, std::monostate>) {
-            bserializer::Serialize(data, std::get<_Index>(variant));
-        }
-    }
-    else {
-        VariantHelper2<_Index + 1, _Ts...>::Serialize(data, variant);
-    }
-}
-
-template <std::size_t _Index, typename... _Ts>
-void bserializer::details::VariantHelper2<_Index, _Ts...>::Deserialize(const void*& data, std::size_t index, std::variant<_Ts...>* variant) {
-    if constexpr (_Index >= sizeof...(_Ts)) {
-        if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
-            new (variant) std::variant<_Ts...>(std::monostate());
-        }
-        else {
-            throw std::out_of_range("Deserialized index is out of bounds.");
-        }
-    }
-    else if (index == _Index) {
-        using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
-        if constexpr (std::same_as<element_t, std::monostate>) {
-            new (variant) std::variant<_Ts...>(std::monostate());
-        }
-        else {
-            new (variant) std::variant<_Ts...>(bserializer::Deserialize<element_t>(data));
-        }
-    }
-    else {
-        VariantHelper2<_Index + 1, _Ts...>::Deserialize(data, index, variant);
-    }
-}
-
-template <typename _TVariant>
-std::size_t bserializer::details::VariantSerializedSize(const _TVariant& variant) {
-    return VariantHelper<_TVariant>::SerializedSize(variant);
-}
-
-template <typename _TVariant>
-void bserializer::details::VariantSerialize(void*& data, const _TVariant& variant) {
-    VariantHelper<_TVariant>::Serialize(data, variant);
-}
-
-template <typename _TVariant>
-void bserializer::details::VariantDeserialize(const void*& data, _TVariant* variant) {
-    std::size_t idx = bserializer::Deserialize<std::size_t>(data);
-    VariantHelper<_TVariant>::Deserialize(data, idx, variant);
-}
-
-template <typename _T>
-inline _T bserializer::ToFromLittleEndian(_T value) {
-    if constexpr (std::endian::native == std::endian::big) details::byteSwap(value);
-    return value;
-}
-
-template <typename _T>
-inline void bserializer::ToFromLittleEndian(_T* lower, _T* upper) {
-    if constexpr (std::endian::native == std::endian::big) {
-        for (; lower < upper; ++lower) {
-            details::byteSwap(*lower);
-        }
-    }
-}
-
-template <typename _T>
-inline void bserializer::ToFromLittleEndian(_T* array, std::size_t length) {
-    ToFromLittleEndian(array, array + length);
-}
-
-template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedSize(const _T& value) {
-    if constexpr (BuiltInSerializable<_T>) {
-        return value.SerializedSize();
-    }
-    else if constexpr (SerializableCollection<_T>) {
-        using value_t = typename _T::value_type;
-        std::size_t t = sizeof(std::size_t);
-        if constexpr (std::same_as<value_t, bool>) {
-            std::size_t s = value.size();
-            t += s >> 3;
-            if (s & 7) t += 1;
-        }
-        else {
-            for (auto& v : value) {
-                t += SerializedSize(v);
+namespace bserializer {
+    namespace details {
+        template <typename _TTuple, std::size_t _Index, typename _TFirst, typename... _TsAll>
+        inline void TupleDeserializer2<_TTuple, _Index, _TFirst, _TsAll...>::DeserializeTuple(const void*& data, _TTuple& tuple) {
+            _TFirst& v = std::get<_Index>(tuple);
+            Deserialize<_TFirst>(data, &v);
+            if constexpr (sizeof...(_TsAll)) {
+                TupleDeserializer2<_TTuple, _Index + 1, _TsAll...>::DeserializeTuple(data, tuple);
             }
         }
-        return t;
-    }
-    else if constexpr (Arithmetic<_T>) {
-        return sizeof(_T);
-    }
-    else if constexpr (SerializableStdPair<_T>) {
-        return
-            SerializedSize(value.first) +
-            SerializedSize(value.second);
-    }
-    else if constexpr (SerializableStdTuple<_T>) {
-        std::size_t t = 0;
-        std::apply([&t](const auto&... args) {
-            (details::addRef(t, SerializedSize(args)), ...);
-        }, value);
-        return t;
-    }
-    else if constexpr (StdComplex<_T>) {
-        return sizeof(decltype(value.real())) << 1;
-    }
-    else if constexpr (SerializableStdArray<_T>) {
-        std::size_t t = 0;
-        for (auto& e : value) t += SerializedSize(e);
-        return t;
-    }
-    else if constexpr (SerializableStdOptional<_T>) {
-        if (value) {
-            return sizeof(bool) + SerializedSize(*value);
-        }
-        else return sizeof(bool);
-    }
-    else if constexpr (SerializableStdVariant<_T>) {
-        return details::VariantSerializedSize(value);
-    }
-    else if constexpr (StdDuration<_T>) {
-        return sizeof(decltype(value.count()));
-    }
-    else if constexpr (StdTimePoint<_T>) {
-        return sizeof(decltype(value.time_since_epoch().count()));
-    }
-}
 
-template <bserializer::Serializable _T>
-inline void bserializer::Serialize(void*& data, const _T& value) {
-    if constexpr (BuiltInSerializable<_T>) {
-        value.Serialize(data);
-    }
-    else if constexpr (SerializableCollection<_T>) {
-        using value_t = typename _T::value_type;
-        std::size_t len = value.size();
-        Serialize(data, len);
-        if (len) {
-            if constexpr (std::same_as<value_t, bool>) {
-                uint64_t m = 1;
-                uint64_t c = 0;
-                if constexpr (std::same_as<decltype(*value.cbegin()), bool>) {
-                    for (bool v : value) {
-                        if (!m) {
-                            Serialize(data, c);
-                            m = 1;
-                            c = 0;
-                        }
-                        if (v) c |= m;
-                        m <<= 1;
-                    }
+        template <typename _TTuple>
+        inline static void DeserializeTuple(const void*& data, _TTuple& tuple) {
+            TupleDeserializer<_TTuple>::DeserializeTuple(data, tuple);
+        }
+
+        template <std::size_t _Index, typename... _Ts>
+        std::size_t VariantHelper2<_Index, _Ts...>::SerializedSize(const std::variant<_Ts...>& variant) {
+            if constexpr (_Index >= sizeof...(_Ts)) {
+                if constexpr ((std::same_as<std::monostate, _Ts> || ...)) return sizeof(std::size_t);
+                else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
+            }
+            else if (variant.index() == _Index) {
+                using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+                if constexpr (std::same_as<element_t, std::monostate>) return sizeof(std::size_t);
+                else return sizeof(std::size_t) + SerializedSize(std::get<_Index>(variant));
+            }
+            else {
+                return VariantHelper2<_Index + 1, _Ts...>::SerializedSize(variant);
+            }
+        }
+
+        template <std::size_t _Index, typename... _Ts>
+        void VariantHelper2<_Index, _Ts...>::Serialize(void*& data, const std::variant<_Ts...>& variant) {
+            if constexpr (_Index >= sizeof...(_Ts)) {
+                if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
+                    Serialize(data, (std::size_t)0 - (std::size_t)1);
+                }
+                else throw std::out_of_range("Index of 'std::variant<...>' is out of bounds; parameter 'variant' is invalid.");
+            }
+            else if (variant.index() == _Index) {
+                using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+                Serialize(data, _Index);
+                if constexpr (!std::same_as<element_t, std::monostate>) {
+                    Serialize(data, std::get<_Index>(variant));
+                }
+            }
+            else {
+                VariantHelper2<_Index + 1, _Ts...>::Serialize(data, variant);
+            }
+        }
+
+        template <std::size_t _Index, typename... _Ts>
+        void VariantHelper2<_Index, _Ts...>::Deserialize(const void*& data, std::size_t index, std::variant<_Ts...>* variant) {
+            if constexpr (_Index >= sizeof...(_Ts)) {
+                if constexpr ((std::same_as<std::monostate, _Ts> || ...)) {
+                    new (variant) std::variant<_Ts...>(std::monostate());
                 }
                 else {
-                    for (auto& v : value) {
-                        if (!m) {
-                            Serialize(data, c);
-                            m = 1;
-                            c = 0;
+                    throw std::out_of_range("Deserialized index is out of bounds.");
+                }
+            }
+            else if (index == _Index) {
+                using element_t = std::tuple_element_t<_Index, std::tuple<_Ts...>>;
+                if constexpr (std::same_as<element_t, std::monostate>) {
+                    new (variant) std::variant<_Ts...>(std::monostate());
+                }
+                else {
+                    new (variant) std::variant<_Ts...>(Deserialize<element_t>(data));
+                }
+            }
+            else {
+                VariantHelper2<_Index + 1, _Ts...>::Deserialize(data, index, variant);
+            }
+        }
+
+        template <typename _TVariant>
+        std::size_t VariantSerializedSize(const _TVariant& variant) {
+            return VariantHelper<_TVariant>::SerializedSize(variant);
+        }
+
+        template <typename _TVariant>
+        void VariantSerialize(void*& data, const _TVariant& variant) {
+            VariantHelper<_TVariant>::Serialize(data, variant);
+        }
+
+        template <typename _TVariant>
+        void VariantDeserialize(const void*& data, _TVariant* variant) {
+            std::size_t idx = Deserialize<std::size_t>(data);
+            VariantHelper<_TVariant>::Deserialize(data, idx, variant);
+        }
+    }
+
+    template <Serializable _T>
+    inline std::size_t SerializedSize(const _T& value) {
+        if constexpr (BuiltInSerializable<_T>) {
+            return value.SerializedSize();
+        }
+        else if constexpr (SerializableCollection<_T>) {
+            using value_t = typename _T::value_type;
+            std::size_t t = sizeof(std::size_t);
+            if constexpr (std::same_as<value_t, bool>) {
+                std::size_t s = value.size();
+                t += s >> 3;
+                if (s & 7) t += 1;
+            }
+            else {
+                for (auto& v : value) {
+                    t += SerializedSize(v);
+                }
+            }
+            return t;
+        }
+        else if constexpr (Arithmetic<_T>) {
+            return sizeof(_T);
+        }
+        else if constexpr (SerializableStdPair<_T>) {
+            return
+                SerializedSize(value.first) +
+                SerializedSize(value.second);
+        }
+        else if constexpr (SerializableStdTuple<_T>) {
+            std::size_t t = 0;
+            std::apply([&t](const auto&... args) {
+                (details::addRef(t, SerializedSize(args)), ...);
+            }, value);
+            return t;
+        }
+        else if constexpr (StdComplex<_T>) {
+            return sizeof(decltype(value.real())) << 1;
+        }
+        else if constexpr (SerializableStdArray<_T>) {
+            std::size_t t = 0;
+            for (auto& e : value) t += SerializedSize(e);
+            return t;
+        }
+        else if constexpr (SerializableStdOptional<_T>) {
+            if (value) {
+                return sizeof(bool) + SerializedSize(*value);
+            }
+            else return sizeof(bool);
+        }
+        else if constexpr (SerializableStdVariant<_T>) {
+            return details::VariantSerializedSize(value);
+        }
+        else if constexpr (StdDuration<_T>) {
+            return sizeof(decltype(value.count()));
+        }
+        else if constexpr (StdTimePoint<_T>) {
+            return sizeof(decltype(value.time_since_epoch().count()));
+        }
+    }
+
+    template <Serializable _T>
+    inline void Serialize(void*& data, const _T& value) {
+        if constexpr (BuiltInSerializable<_T>) {
+            value.Serialize(data);
+        }
+        else if constexpr (SerializableCollection<_T>) {
+            using value_t = typename _T::value_type;
+            std::size_t len = value.size();
+            Serialize(data, len);
+            if (len) {
+                if constexpr (std::same_as<value_t, bool>) {
+                    uint64_t m = 1;
+                    uint64_t c = 0;
+                    if constexpr (std::same_as<decltype(*value.cbegin()), bool>) {
+                        for (bool v : value) {
+                            if (!m) {
+                                Serialize(data, c);
+                                m = 1;
+                                c = 0;
+                            }
+                            if (v) c |= m;
+                            m <<= 1;
                         }
-                        if (v) c |= m;
-                        m <<= 1;
                     }
+                    else {
+                        for (auto& v : value) {
+                            if (!m) {
+                                Serialize(data, c);
+                                m = 1;
+                                c = 0;
+                            }
+                            if (v) c |= m;
+                            m <<= 1;
+                        }
+                    }
+                    if (m) {
+                        std::size_t i;
+                        if (!(c >> 8)) i = 1;
+                        else if (!(c >> 16)) i = 2;
+                        else if (!(c >> 24)) i = 3;
+                        else if (!(c >> 32)) i = 4;
+                        else if (!(c >> 40)) i = 5;
+                        else if (!(c >> 48)) i = 6;
+                        else if (!(c >> 56)) i = 7;
+                        else i = 8;
+                        if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
+                        memcpy(data, &c, i);
+                        data = ((char*)data) + i;
+                    }
+                    else Serialize(data, c);
                 }
-                if (m) {
-                    std::size_t i;
-                    if (!(c >> 8)) i = 1;
-                    else if (!(c >> 16)) i = 2;
-                    else if (!(c >> 24)) i = 3;
-                    else if (!(c >> 32)) i = 4;
-                    else if (!(c >> 40)) i = 5;
-                    else if (!(c >> 48)) i = 6;
-                    else if (!(c >> 56)) i = 7;
-                    else i = 8;
-                    if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
-                    memcpy(data, &c, i);
-                    data = ((char*)data) + i;
-                }
-                else Serialize(data, c);
+                else for (auto& v : value) Serialize(data, v);
             }
-            else for (auto& v : value) Serialize(data, v);
+        }
+        else if constexpr (Arithmetic<_T>) {
+            _T v2 = ToFromLittleEndian(value);
+            memcpy(data, &v2, sizeof(_T));
+            data = ((_T*)data + 1);
+        }
+        else if constexpr (SerializableStdPair<_T>) {
+            Serialize(data, value.first);
+            Serialize(data, value.second);
+        }
+        else if constexpr (SerializableStdTuple<_T>) {
+            std::apply([&data](const auto&... args) {
+                (Serialize(data, args), ...);
+            }, value);
+        }
+        else if constexpr (StdComplex<_T>) {
+            Serialize(data, value.real());
+            Serialize(data, value.imag());
+        }
+        else if constexpr (SerializableStdArray<_T>) {
+            for (auto& e : value) Serialize(data, e);
+        }
+        else if constexpr (SerializableStdOptional<_T>) {
+            if (value) {
+                Serialize(data, true);
+                Serialize(data, *value);
+            }
+            else Serialize(data, false);
+        }
+        else if constexpr (SerializableStdVariant<_T>) {
+            details::VariantSerialize(data, value);
+        }
+        else if constexpr (StdDuration<_T>) {
+            Serialize(data, value.count());
+        }
+        else if constexpr (StdTimePoint<_T>) {
+            Serialize(data, value.time_since_epoch());
         }
     }
-    else if constexpr (Arithmetic<_T>) {
-        _T v2 = ToFromLittleEndian(value);
-        memcpy(data, &v2, sizeof(_T));
-        data = ((_T*)data + 1);
+
+    template <Serializable _T>
+    inline _T Deserialize(const void*& data) {
+        char bytes[sizeof(_T)];
+        _T& r = *(_T*)bytes;
+        Deserialize(data, &r);
+        return r;
     }
-    else if constexpr (SerializableStdPair<_T>) {
-        Serialize(data, value.first);
-        Serialize(data, value.second);
+
+    template <Serializable _T>
+    inline void Deserialize(const void*& data, _T* value) {
+        Deserialize<_T>(data, *(void**)&value);
     }
-    else if constexpr (SerializableStdTuple<_T>) {
-        std::apply([&data](const auto&... args) {
-            (Serialize(data, args), ...);
-        }, value);
-    }
-    else if constexpr (StdComplex<_T>) {
-        Serialize(data, value.real());
-        Serialize(data, value.imag());
-    }
-    else if constexpr (SerializableStdArray<_T>) {
-        for (auto& e : value) Serialize(data, e);
-    }
-    else if constexpr (SerializableStdOptional<_T>) {
-        if (value) {
-            Serialize(data, true);
-            Serialize(data, *value);
+
+    template <Serializable _T>
+    inline void Deserialize(const void*& data, void* value) {
+        if constexpr (BuiltInSerializable<_T>) {
+            _T::Deserialize(data, value);
         }
-        else Serialize(data, false);
-    }
-    else if constexpr (SerializableStdVariant<_T>) {
-        details::VariantSerialize(data, value);
-    }
-    else if constexpr (StdDuration<_T>) {
-        Serialize(data, value.count());
-    }
-    else if constexpr (StdTimePoint<_T>) {
-        Serialize(data, value.time_since_epoch());
-    }
-}
-
-template <bserializer::Serializable _T>
-inline _T bserializer::Deserialize(const void*& data) {
-    char bytes[sizeof(_T)];
-    _T& r = *(_T*)bytes;
-    Deserialize(data, &r);
-    return r;
-}
-
-template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(const void*& data, _T* value) {
-    Deserialize<_T>(data, *(void**)&value);
-}
-
-template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(const void*& data, void* value) {
-    if constexpr (BuiltInSerializable<_T>) {
-        _T::Deserialize(data, value);
-    }
-    else if constexpr (SerializableCollection<_T>) {
-        using value_t = typename _T::value_type;
-        std::size_t len = Deserialize<std::size_t>(data);
-        value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
-        value_t* b = arr + len;
-        if constexpr (std::same_as<value_t, bool>) {
-            bool* fb = arr + (len & ~((1ui64 << 6) - 1));
-            uint64_t m = 0;
-            uint64_t c = 0;
-            for (bool* p_v = arr; p_v < fb; ++p_v) {
-                if (!m) {
-                    m = 1;
-                    Deserialize(data, &c);
-                }
-                *p_v = (bool)(c & m);
-                m <<= 1;
-            }
-            if (fb != b) {
-                std::size_t i = b - fb;
-                i = (i >> 3) + ((i & 7ui64) ? 1ui64 : 0ui64);
-                memcpy(&c, data, i);
-                if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
-                data = ((char*)data) + i;
-                m = 1;
-                for (bool* p_v = fb; p_v < b; ++p_v) {
+        else if constexpr (SerializableCollection<_T>) {
+            using value_t = typename _T::value_type;
+            std::size_t len = Deserialize<std::size_t>(data);
+            value_t* arr = (value_t*)malloc(sizeof(value_t) * len);
+            value_t* b = arr + len;
+            if constexpr (std::same_as<value_t, bool>) {
+                bool* fb = arr + (len & ~((1ui64 << 6) - 1));
+                uint64_t m = 0;
+                uint64_t c = 0;
+                for (bool* p_v = arr; p_v < fb; ++p_v) {
+                    if (!m) {
+                        m = 1;
+                        Deserialize(data, &c);
+                    }
                     *p_v = (bool)(c & m);
                     m <<= 1;
                 }
+                if (fb != b) {
+                    std::size_t i = b - fb;
+                    i = (i >> 3) + ((i & 7ui64) ? 1ui64 : 0ui64);
+                    memcpy(&c, data, i);
+                    if constexpr (std::endian::native == std::endian::big) std::reverse((char*)&c, ((char*)&c) + i);
+                    data = ((char*)data) + i;
+                    m = 1;
+                    for (bool* p_v = fb; p_v < b; ++p_v) {
+                        *p_v = (bool)(c & m);
+                        m <<= 1;
+                    }
+                }
             }
+            else for (value_t* i = arr; i < b; ++i) Deserialize(data, i);
+            new (value) _T(std::initializer_list<value_t>(arr, b));
+            free(arr);
         }
-        else for (value_t* i = arr; i < b; ++i) Deserialize(data, i);
-        new (value) _T(std::initializer_list<value_t>(arr, b));
-        free(arr);
-    }
-    else if constexpr (Arithmetic<_T>) {
-        new (value) _T(ToFromLittleEndian(*(_T*)data));
-        data = ((_T*)data) + 1;
-    }
-    else if constexpr (SerializableStdPair<_T>) {
-        using t1_t = _T::first_type;
-        using t2_t = _T::second_type;
-        if constexpr (sizeof(t1_t) >> 8) {
-            t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
-            t1_t& v1 = *p_v1;
-            Deserialize(data, p_v1);
-            if constexpr (sizeof(t2_t) >> 8) {
-                t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
-                t2_t& v2 = *p_v2;
-                Deserialize(data, p_v2);
-                new (value) _T(v1, v2);
-                free(p_v2);
+        else if constexpr (Arithmetic<_T>) {
+            new (value) _T(ToFromLittleEndian(*(_T*)data));
+            data = ((_T*)data) + 1;
+        }
+        else if constexpr (SerializableStdPair<_T>) {
+            using t1_t = _T::first_type;
+            using t2_t = _T::second_type;
+            if constexpr (sizeof(t1_t) >> 8) {
+                t1_t* p_v1 = (t1_t*)malloc(sizeof(t1_t));
+                t1_t& v1 = *p_v1;
+                Deserialize(data, p_v1);
+                if constexpr (sizeof(t2_t) >> 8) {
+                    t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
+                    t2_t& v2 = *p_v2;
+                    Deserialize(data, p_v2);
+                    new (value) _T(v1, v2);
+                    free(p_v2);
+                }
+                else {
+                    t2_t v2 = Deserialize<t2_t>(data);
+                    new (value) _T(v1, v2);
+                }
+                free(p_v1);
             }
             else {
-                t2_t v2 = Deserialize<t2_t>(data);
-                new (value) _T(v1, v2);
-            }
-            free(p_v1);
-        }
-        else {
-            t1_t v1 = Deserialize<t1_t>(data);
-            if constexpr (sizeof(t2_t) >> 8) {
-                t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
-                t2_t& v2 = *p_v2;
-                Deserialize(data, p_v2);
-                new (value) _T(v1, v2);
-                free(p_v2);
-            }
-            else {
-                t2_t v2 = Deserialize<t2_t>(data);
-                new (value) _T(v1, v2);
+                t1_t v1 = Deserialize<t1_t>(data);
+                if constexpr (sizeof(t2_t) >> 8) {
+                    t2_t* p_v2 = (t2_t*)malloc(sizeof(t2_t));
+                    t2_t& v2 = *p_v2;
+                    Deserialize(data, p_v2);
+                    new (value) _T(v1, v2);
+                    free(p_v2);
+                }
+                else {
+                    t2_t v2 = Deserialize<t2_t>(data);
+                    new (value) _T(v1, v2);
+                }
             }
         }
+        else if constexpr (SerializableStdTuple<_T>) {
+            details::DeserializeTuple(data, *(_T*)value);
+        }
+        else if constexpr (StdComplex<_T>) {
+            using component_t = decltype(std::declval<_T>().real());
+            component_t re = Deserialize<component_t>(data);
+            component_t im = Deserialize<component_t>(data);
+            new (value) _T(re, im);
+        }
+        else if constexpr (SerializableStdArray<_T>) {
+            using value_t = typename _T::value_type;
+            constexpr std::size_t size = std::tuple_size_v<_T>;
+            value_t* i = (value_t*)value;
+            value_t* upper = i + size;
+            for (; i < upper; ++i) Deserialize(data, i);
+        }
+        else if constexpr (SerializableStdOptional<_T>) {
+            bool v = Deserialize<bool>(data);
+            if (v) new (value) _T(Deserialize<typename _T::value_type>(data));
+            else new (value) _T;
+        }
+        else if constexpr (SerializableStdVariant<_T>) {
+            details::VariantDeserialize(data, (_T*)value);
+        }
+        else if constexpr (StdDuration<_T>) {
+            using internal_t = decltype(std::declval<_T>().count());
+            new (value) _T(Deserialize<internal_t>(data));
+        }
+        else if constexpr (StdTimePoint<_T>) {
+            using internal_t = decltype(std::declval<_T>().time_since_epoch());
+            new (value) _T(Deserialize<internal_t>(data));
+        }
     }
-    else if constexpr (SerializableStdTuple<_T>) {
-        details::DeserializeTuple(data, *(_T*)value);
+
+    template <Serializable _T>
+    inline _T Deserialize(void*& data) {
+        return Deserialize<_T>(const_cast<const void*&>(data));
     }
-    else if constexpr (StdComplex<_T>) {
-        using component_t = decltype(std::declval<_T>().real());
-        component_t re = Deserialize<component_t>(data);
-        component_t im = Deserialize<component_t>(data);
-        new (value) _T(re, im);
+
+    template <Serializable _T>
+    inline void Deserialize(void*& data, _T* value) {
+        Deserialize(const_cast<const void*&>(data), value);
     }
-    else if constexpr (SerializableStdArray<_T>) {
-        using value_t = typename _T::value_type;
-        constexpr std::size_t size = std::tuple_size_v<_T>;
-        value_t* i = (value_t*)value;
-        value_t* upper = i + size;
-        for (; i < upper; ++i) Deserialize(data, i);
+
+    template <Serializable _T>
+    inline void Deserialize(void*& data, void* value) {
+        Deserialize<_T>(const_cast<const void*&>(data), value);
     }
-    else if constexpr (SerializableStdOptional<_T>) {
-        bool v = Deserialize<bool>(data);
-        if (v) new (value) _T(Deserialize<typename _T::value_type>(data));
-        else new (value) _T;
+
+    template <Serializable _T>
+    inline std::size_t SerializedArraySize(const _T* lower, const _T* upper) {
+        std::size_t t = 0;
+        for (; lower < upper; ++lower) t += SerializedSize(*lower);
+        return t;
     }
-    else if constexpr (SerializableStdVariant<_T>) {
-        details::VariantDeserialize(data, (_T*)value);
+
+    template <Serializable _T>
+    inline std::size_t SerializedArraySize(const _T* array, std::size_t length) {
+        return SerializedArraySize(array, array + length);
     }
-    else if constexpr (StdDuration<_T>) {
-        using internal_t = decltype(std::declval<_T>().count());
-        new (value) _T(Deserialize<internal_t>(data));
+
+    template <Serializable _T>
+    inline void SerializeArray(void*& data, const _T* lower, const _T* upper) {
+        for (; lower < upper; ++lower) Serialize(data, *lower);
     }
-    else if constexpr (StdTimePoint<_T>) {
-        using internal_t = decltype(std::declval<_T>().time_since_epoch());
-        new (value) _T(Deserialize<internal_t>(data));
+
+    template <Serializable _T>
+    inline void SerializeArray(void*& data, const _T* array, std::size_t length) {
+        SerializeArray(data, array, array + length);
     }
-}
 
-template <bserializer::Serializable _T>
-inline _T bserializer::Deserialize(void*& data) {
-    return Deserialize<_T>(const_cast<const void*&>(data));
-}
+    template <Serializable _T>
+    inline void DeserializeArray(const void*& data, _T* lower, _T* upper) {
+        for (; lower < upper; ++lower) *lower = Deserialize<_T>(data);
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(void*& data, _T* value) {
-    Deserialize(const_cast<const void*&>(data), value);
-}
+    template <Serializable _T>
+    inline void DeserializeArray(const void*& data, _T* array, std::size_t length) {
+        DeserializeArray(data, array, array + length);
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::Deserialize(void*& data, void* value) {
-    Deserialize<_T>(const_cast<const void*&>(data), value);
-}
+    template <typename _T>
+    inline std::size_t SerializedRawSize(const _T& value) {
+        return sizeof(_T);
+    }
 
-template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedArraySize(const _T* lower, const _T* upper) {
-    std::size_t t = 0;
-    for (; lower < upper; ++lower) t += SerializedSize(*lower);
-    return t;
-}
+    template <typename _T>
+    inline void SerializeRaw(void*& data, const _T& value) {
+        SerializeRaw(data, &value, sizeof(_T));
+    }
 
-template <bserializer::Serializable _T>
-inline std::size_t bserializer::SerializedArraySize(const _T* array, std::size_t length) {
-    return SerializedArraySize(array, array + length);
-}
+    template <typename _T>
+    inline _T DeserializeRaw(const void*& data) {
+        char bytes[sizeof(_T)];
+        DeserializeRaw(data, bytes, sizeof(_T));
+        return *(_T*)bytes;
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::SerializeArray(void*& data, const _T* lower, const _T* upper) {
-    for (; lower < upper; ++lower) Serialize(data, *lower);
-}
+    template <typename _T>
+    inline void DeserializeRaw(const void*& data, _T* value) {
+        DeserializeRaw(data, (void*)value);
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::SerializeArray(void*& data, const _T* array, std::size_t length) {
-    SerializeArray(data, array, array + length);
-}
+    template <typename _T>
+    inline void DeserializeRaw(const void*& data, void* value) {
+        DeserializeRaw(data, value, sizeof(_T));
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::DeserializeArray(const void*& data, _T* lower, _T* upper) {
-    for (; lower < upper; ++lower) *lower = Deserialize<_T>(data);
-}
+    inline std::size_t SerializedRawSize(const void* lower, const void* upper) {
+        return (char*)upper - (char*)lower;
+    }
 
-template <bserializer::Serializable _T>
-inline void bserializer::DeserializeArray(const void*& data, _T* array, std::size_t length) {
-    DeserializeArray(data, array, array + length);
-}
+    inline void SerializeRaw(void*& data, const void* lower, const void* upper) {
+        SerializeRaw(data, lower, (char*)upper - (char*)lower);
+    }
 
-template <typename _T>
-inline std::size_t bserializer::SerializedRawSize(const _T& value) {
-    return sizeof(_T);
-}
+    inline void SerializeRaw(void*& data, const void* lower, std::size_t length) {
+        memcpy(data, lower, length);
+        data = ((char*)data) + length;
+    }
 
-template <typename _T>
-inline void bserializer::SerializeRaw(void*& data, const _T& value) {
-    SerializeRaw(data, &value, sizeof(_T));
-}
+    inline void DeserializeRaw(const void*& data, void* lower, void* upper) {
+        DeserializeRaw(data, lower, (char*)upper - (char*)lower);
+    }
 
-template <typename _T>
-inline _T bserializer::DeserializeRaw(const void*& data) {
-    char bytes[sizeof(_T)];
-    DeserializeRaw(data, bytes, sizeof(_T));
-    return *(_T*)bytes;
-}
-
-template <typename _T>
-inline void bserializer::DeserializeRaw(const void*& data, _T* value) {
-    DeserializeRaw(data, (void*)value);
-}
-
-template <typename _T>
-inline void bserializer::DeserializeRaw(const void*& data, void* value) {
-    DeserializeRaw(data, value, sizeof(_T));
-}
-
-inline std::size_t bserializer::SerializedRawSize(const void* lower, const void* upper) {
-    return (char*)upper - (char*)lower;
-}
-
-inline void bserializer::SerializeRaw(void*& data, const void* lower, const void* upper) {
-    SerializeRaw(data, lower, (char*)upper - (char*)lower);
-}
-
-inline void bserializer::SerializeRaw(void*& data, const void* lower, std::size_t length) {
-    memcpy(data, lower, length);
-    data = ((char*)data) + length;
-}
-
-inline void bserializer::DeserializeRaw(const void*& data, void* lower, void* upper) {
-    DeserializeRaw(data, lower, (char*)upper - (char*)lower);
-}
-
-inline void bserializer::DeserializeRaw(const void*& data, void* lower, std::size_t length) {
-    memcpy(lower, data, length);
-    data = ((char*)data) + length;
+    inline void DeserializeRaw(const void*& data, void* lower, std::size_t length) {
+        memcpy(lower, data, length);
+        data = ((char*)data) + length;
+    }
 }
