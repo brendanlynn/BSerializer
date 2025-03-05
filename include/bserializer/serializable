@@ -31,17 +31,17 @@ namespace bserializer {
      */
     template <typename _T>
     concept BuiltInSerializable = requires() {
-        requires requires (const _T Obj) {
-            { Obj.SerializedSize() } -> std::same_as<std::size_t>;
+        requires requires (const _T obj) {
+            { obj.SerializedSize() } -> std::same_as<std::size_t>;
         };
 
-        requires requires (const _T Obj, void* Data) {
-            { Obj.Serialize(Data) } -> std::same_as<void>;
+        requires requires (const _T obj, void* data) {
+            { obj.Serialize(data) } -> std::same_as<void>;
         };
 
-        requires requires (const void* Data, void* const ObjMem) {
-            { _T::Deserialize(Data) } -> std::same_as<_T>;
-            { _T::Deserialize(Data, ObjMem) } -> std::same_as<void>;
+        requires requires (const void* data, void* const objMem) {
+            { _T::Deserialize(data) } -> std::same_as<_T>;
+            { _T::Deserialize(data, objMem) } -> std::same_as<void>;
         };
     };
 
@@ -84,29 +84,29 @@ namespace bserializer {
 
         requires std::unsigned_integral<typename _T::size_type>;
 
-        requires requires (const _T Obj) {
-            { Obj.size() } -> std::same_as<typename _T::size_type>;
-            { Obj.cbegin() } -> std::same_as<typename _T::const_iterator>;
-            { Obj.cend() } -> std::same_as<typename _T::const_iterator>;
+        requires requires (const _T obj) {
+            { obj.size() } -> std::same_as<typename _T::size_type>;
+            { obj.cbegin() } -> std::same_as<typename _T::const_iterator>;
+            { obj.cend() } -> std::same_as<typename _T::const_iterator>;
         };
 
-        requires requires(const typename _T::const_iterator CIt) {
-            requires std::same_as<decltype(*CIt), const typename _T::value_type&> ||
-                     (std::same_as<typename _T::value_type, bool> && std::same_as<decltype(*CIt), bool>);
+        requires requires(const typename _T::const_iterator cIt) {
+            requires std::same_as<decltype(*cIt), const typename _T::value_type&> ||
+                     (std::same_as<typename _T::value_type, bool> && std::same_as<decltype(*cIt), bool>);
         };
 
-        requires requires(typename _T::const_iterator CIt) {
-            { ++CIt } -> std::same_as<typename _T::const_iterator&>;
-            { CIt++ } -> std::same_as<typename _T::const_iterator>;
+        requires requires(typename _T::const_iterator cIt) {
+            { ++cIt } -> std::same_as<typename _T::const_iterator&>;
+            { cIt++ } -> std::same_as<typename _T::const_iterator>;
         };
 
-        requires requires(const typename _T::const_iterator CIt1, const typename _T::const_iterator CIt2) {
-            { CIt1 == CIt2 } -> std::same_as<bool>;
-            { CIt1 != CIt2 } -> std::same_as<bool>;
+        requires requires(const typename _T::const_iterator cIt1, const typename _T::const_iterator cIt2) {
+            { cIt1 == cIt2 } -> std::same_as<bool>;
+            { cIt1 != cIt2 } -> std::same_as<bool>;
         };
 
-        requires requires(const std::initializer_list<typename _T::value_type> InitList) {
-            _T(InitList);
+        requires requires(const std::initializer_list<typename _T::value_type> initList) {
+            _T(initList);
         };
     };
 
@@ -149,139 +149,139 @@ namespace bserializer {
 
         requires std::same_as<typename _T::value_type, std::pair<const typename _T::key_type, typename _T::mapped_type>>;
 
-        requires requires (const _T Obj, const typename _T::key_type Key) {
-            { Obj.find(Key) } -> std::same_as<typename _T::const_iterator>;
+        requires requires (const _T obj, const typename _T::key_type key) {
+            { obj.find(key) } -> std::same_as<typename _T::const_iterator>;
         };
     };
 
     namespace details {
         template <typename _T>
-        struct isSerializable;
+        struct IsSerializable;
 
         template <typename _T>
-        struct isStdPair
+        struct IsStdPair
             : std::false_type { };
         template <typename _TFirst, typename _TSecond>
-        struct isStdPair<std::pair<_TFirst, _TSecond>>
+        struct IsStdPair<std::pair<_TFirst, _TSecond>>
             : std::true_type { };
 
         template <typename _T>
-        struct isSerializableStdPair
+        struct IsSerializableStdPair
             : std::false_type { };
         template <typename _TFirst, typename _TSecond>
-        struct isSerializableStdPair<std::pair<_TFirst, _TSecond>>
-            : std::bool_constant<isSerializable<_TFirst>::value && isSerializable<_TSecond>::value> { };
+        struct IsSerializableStdPair<std::pair<_TFirst, _TSecond>>
+            : std::bool_constant<IsSerializable<_TFirst>::value && IsSerializable<_TSecond>::value> { };
 
         template <typename _T>
-        struct isStdTuple
+        struct IsStdTuple
             : std::false_type { };
         template <typename... _Ts>
-        struct isStdTuple<std::tuple<_Ts...>>
+        struct IsStdTuple<std::tuple<_Ts...>>
             : std::true_type { };
 
         template <typename _T>
-        struct isSerializableStdTuple
+        struct IsSerializableStdTuple
             : std::false_type { };
         template <>
-        struct isSerializableStdTuple<std::tuple<>>
+        struct IsSerializableStdTuple<std::tuple<>>
             : std::true_type { };
         template <typename _TFirst, typename... _Ts>
-        struct isSerializableStdTuple<std::tuple<_TFirst, _Ts...>>
-            : std::bool_constant<isSerializable<_TFirst>::value && isSerializableStdTuple<std::tuple<_Ts...>>::value> { };
+        struct IsSerializableStdTuple<std::tuple<_TFirst, _Ts...>>
+            : std::bool_constant<IsSerializable<_TFirst>::value && IsSerializableStdTuple<std::tuple<_Ts...>>::value> { };
 
         template <typename _T>
-        struct isSerializableCollection
+        struct IsSerializableCollection
             : std::false_type { };
         template <Collection _T>
-        struct isSerializableCollection<_T>
-            : std::bool_constant<isSerializable<typename _T::value_type>::value> { };
+        struct IsSerializableCollection<_T>
+            : std::bool_constant<IsSerializable<typename _T::value_type>::value> { };
 
         template <typename _T>
-        struct isSerializableMap
+        struct IsSerializableMap
             : std::false_type { };
         template <Map _T>
-        struct isSerializableMap<_T>
-            : std::bool_constant<isSerializable<typename _T::key_type>::value && isSerializable<typename _T::mapped_type>::value> { };
+        struct IsSerializableMap<_T>
+            : std::bool_constant<IsSerializable<typename _T::key_type>::value && IsSerializable<typename _T::mapped_type>::value> { };
 
         template <typename _T>
-        struct isStdComplex
+        struct IsStdComplex
             : std::false_type { };
         template <typename _T>
-        struct isStdComplex<std::complex<_T>>
+        struct IsStdComplex<std::complex<_T>>
             : std::true_type { };
         
         template <typename _T>
-        struct isStdArray
+        struct IsStdArray
             : std::false_type { };
         template <typename _T, std::size_t _Size>
-        struct isStdArray<std::array<_T, _Size>>
+        struct IsStdArray<std::array<_T, _Size>>
             : std::true_type { };
 
         template <typename _T>
-        struct isSerializableStdArray
+        struct IsSerializableStdArray
             : std::false_type { };
         template <typename _T, std::size_t _Size>
-        struct isSerializableStdArray<std::array<_T, _Size>>
-            : std::bool_constant<isSerializable<_T>::value> { };
+        struct IsSerializableStdArray<std::array<_T, _Size>>
+            : std::bool_constant<IsSerializable<_T>::value> { };
 
         template <typename _T>
-        struct isStdOptional
+        struct IsStdOptional
             : std::false_type { };
         template <typename _T>
-        struct isStdOptional<std::optional<_T>>
+        struct IsStdOptional<std::optional<_T>>
             : std::true_type { };
 
         template <typename _T>
-        struct isSerializableStdOptional
+        struct IsSerializableStdOptional
             : std::false_type { };
         template <typename _T>
-        struct isSerializableStdOptional<std::optional<_T>>
-            : std::bool_constant<isSerializable<_T>::value> { };
+        struct IsSerializableStdOptional<std::optional<_T>>
+            : std::bool_constant<IsSerializable<_T>::value> { };
 
         template <typename _T>
-        struct isStdVariant
+        struct IsStdVariant
             : std::false_type { };
         template <typename... _Ts>
-        struct isStdVariant<std::variant<_Ts...>>
+        struct IsStdVariant<std::variant<_Ts...>>
             : std::true_type { };
 
         template <typename _T>
-        struct isSerializableStdVariant
+        struct IsSerializableStdVariant
             : std::false_type { };
         template <typename... _Ts>
-        struct isSerializableStdVariant<std::variant<_Ts...>>
-            : std::bool_constant<((std::same_as<_Ts, std::monostate> || isSerializable<_Ts>::value) && ...)> { };
+        struct IsSerializableStdVariant<std::variant<_Ts...>>
+            : std::bool_constant<((std::same_as<_Ts, std::monostate> || IsSerializable<_Ts>::value) && ...)> { };
 
         template <typename _T>
-        struct isStdDuration
+        struct IsStdDuration
             : std::false_type { };
         template <typename _T, std::intmax_t _Ratio1, std::intmax_t _Ratio2>
-            requires std::is_arithmetic_v<_T>
-        struct isStdDuration<std::chrono::duration<_T, std::ratio<_Ratio1, _Ratio2>>>
+            requires std::Is_arithmetic_v<_T>
+        struct IsStdDuration<std::chrono::duration<_T, std::ratio<_Ratio1, _Ratio2>>>
             : std::true_type { };
 
         template <typename _T>
-        struct isStdTimePoint
+        struct IsStdTimePoint
             : std::false_type { };
         template <typename _Clock, typename _Duration>
-            requires isStdDuration<_Duration>::value
-        struct isStdTimePoint<std::chrono::time_point<_Clock, _Duration>>
+            requires IsStdDuration<_Duration>::value
+        struct IsStdTimePoint<std::chrono::time_point<_Clock, _Duration>>
             : std::true_type { };
         
         template <typename _T>
-        struct isSerializable
+        struct IsSerializable
             : std::bool_constant<
-                std::is_arithmetic_v<_T> ||
-                isSerializableStdPair<_T>::value ||
-                isSerializableStdTuple<_T>::value ||
-                isSerializableCollection<_T>::value ||
-                isSerializableMap<_T>::value ||
-                isStdComplex<_T>::value ||
-                isSerializableStdArray<_T>::value ||
-                isSerializableStdOptional<_T>::value ||
-                isSerializableStdVariant<_T>::value ||
-                isStdDuration<_T>::value ||
-                isStdTimePoint<_T>::value ||
+                std::Is_arithmetic_v<_T> ||
+                IsSerializableStdPair<_T>::value ||
+                IsSerializableStdTuple<_T>::value ||
+                IsSerializableCollection<_T>::value ||
+                IsSerializableMap<_T>::value ||
+                IsStdComplex<_T>::value ||
+                IsSerializableStdArray<_T>::value ||
+                IsSerializableStdOptional<_T>::value ||
+                IsSerializableStdVariant<_T>::value ||
+                IsStdDuration<_T>::value ||
+                IsStdTimePoint<_T>::value ||
                 BuiltInSerializable<_T>
             > { };
     }
@@ -300,7 +300,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdPair = details::isStdPair<_T>::value;
+    concept StdPair = details::IsStdPair<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::pair<..., ...> and the types of its values are (de)serializable by bserializer.
@@ -308,7 +308,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableStdPair = details::isSerializableStdPair<_T>::value;
+    concept SerializableStdPair = details::IsSerializableStdPair<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::tuple<...>.
@@ -316,7 +316,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdTuple = details::isStdTuple<_T>::value;
+    concept StdTuple = details::IsStdTuple<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::tuple<...> and the types of its values are (de)serializable by bserializer.
@@ -324,7 +324,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableStdTuple = details::isSerializableStdTuple<_T>::value;
+    concept SerializableStdTuple = details::IsSerializableStdTuple<_T>::value;
 
     /**
      * @brief Concept to check if a type is a bserializer::Collection and the types of its elements are (de)serializable by bserializer.
@@ -332,7 +332,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableCollection = details::isSerializableCollection<_T>::value;
+    concept SerializableCollection = details::IsSerializableCollection<_T>::value;
 
     /**
      * @brief Concept to check if a type is a bserializer::Map and the types of its keys and values are (de)serializable by bserializer.
@@ -340,7 +340,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableMap = details::isSerializableMap<_T>::value;
+    concept SerializableMap = details::IsSerializableMap<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::complex<...>.
@@ -348,7 +348,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdComplex = details::isStdComplex<_T>::value;
+    concept StdComplex = details::IsStdComplex<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::array<..., ...>.
@@ -356,7 +356,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdArray = details::isStdArray<_T>::value;
+    concept StdArray = details::IsStdArray<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::array<..., ...> and if the types of its elements are (de)serializable by bserializer.
@@ -364,7 +364,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableStdArray = details::isSerializableStdArray<_T>::value;
+    concept SerializableStdArray = details::IsSerializableStdArray<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::optional<...>.
@@ -372,7 +372,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdOptional = details::isStdOptional<_T>::value;
+    concept StdOptional = details::IsStdOptional<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::optional<...> and if the conditionally wrapped type is (de)serializable by bserializer.
@@ -380,7 +380,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableStdOptional = details::isSerializableStdOptional<_T>::value;
+    concept SerializableStdOptional = details::IsSerializableStdOptional<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::variant<...>.
@@ -388,7 +388,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdVariant = details::isStdVariant<_T>::value;
+    concept StdVariant = details::IsStdVariant<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::variant<...> and if all the possible wrapped types are (de)serializable by bserializer.
@@ -396,7 +396,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept SerializableStdVariant = details::isSerializableStdVariant<_T>::value;
+    concept SerializableStdVariant = details::IsSerializableStdVariant<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::chrono::duration<..., ...> with valid template arguments.
@@ -404,7 +404,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdDuration = details::isStdDuration<_T>::value;
+    concept StdDuration = details::IsStdDuration<_T>::value;
 
     /**
      * @brief Concept to check if a type is any std::chrono::time_point<..., ...> with valid template arguments.
@@ -412,7 +412,7 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept StdTimePoint = details::isStdTimePoint<_T>::value;
+    concept StdTimePoint = details::IsStdTimePoint<_T>::value;
 
     /**
      * @brief Concept to check if a type is serializable by bserializer.
@@ -434,5 +434,5 @@ namespace bserializer {
      * @tparam _T The type whose conformity is evaluated.
      */
     template <typename _T>
-    concept Serializable = details::isSerializable<_T>::value;
+    concept Serializable = details::IsSerializable<_T>::value;
 }
