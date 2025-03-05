@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BSERIALIZER_SERIALIZABLE_H_
+#define BSERIALIZER_SERIALIZABLE_H_
 
 #include <concepts>
 #include <complex>
@@ -436,3 +437,5 @@ namespace bserializer {
     template <typename _T>
     concept Serializable = details::IsSerializable<_T>::value;
 }
+
+#endif // BSERIALIZER_SERIALIZABLE_H_
