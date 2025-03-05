@@ -7,7 +7,7 @@
 #include <variant>
 #include <chrono>
 
-namespace BSerializer {
+namespace bserializer {
     /**
      * @brief Concept to check if a type has custom serialization methods.
      *
@@ -303,7 +303,7 @@ namespace BSerializer {
     concept StdPair = details::isStdPair<_T>::value;
 
     /**
-     * @brief Concept to check if a type is any std::pair<..., ...> and the types of its values are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is any std::pair<..., ...> and the types of its values are (de)serializable by bserializer.
      * 
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -319,7 +319,7 @@ namespace BSerializer {
     concept StdTuple = details::isStdTuple<_T>::value;
 
     /**
-     * @brief Concept to check if a type is any std::tuple<...> and the types of its values are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is any std::tuple<...> and the types of its values are (de)serializable by bserializer.
      * 
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -327,7 +327,7 @@ namespace BSerializer {
     concept SerializableStdTuple = details::isSerializableStdTuple<_T>::value;
 
     /**
-     * @brief Concept to check if a type is a BSerializer::Collection and the types of its elements are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is a bserializer::Collection and the types of its elements are (de)serializable by bserializer.
      * 
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -335,7 +335,7 @@ namespace BSerializer {
     concept SerializableCollection = details::isSerializableCollection<_T>::value;
 
     /**
-     * @brief Concept to check if a type is a BSerializer::Map and the types of its keys and values are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is a bserializer::Map and the types of its keys and values are (de)serializable by bserializer.
      * 
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -359,7 +359,7 @@ namespace BSerializer {
     concept StdArray = details::isStdArray<_T>::value;
 
     /**
-     * @brief Concept to check if a type is any std::array<..., ...> and if the types of its elements are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is any std::array<..., ...> and if the types of its elements are (de)serializable by bserializer.
      *
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -375,7 +375,7 @@ namespace BSerializer {
     concept StdOptional = details::isStdOptional<_T>::value;
 
     /**
-     * @brief Concept to check if a type is any std::optional<...> and if the conditionally wrapped type is (de)serializable by BSerializer.
+     * @brief Concept to check if a type is any std::optional<...> and if the conditionally wrapped type is (de)serializable by bserializer.
      *
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -391,7 +391,7 @@ namespace BSerializer {
     concept StdVariant = details::isStdVariant<_T>::value;
 
     /**
-     * @brief Concept to check if a type is any std::variant<...> and if all the possible wrapped types are (de)serializable by BSerializer.
+     * @brief Concept to check if a type is any std::variant<...> and if all the possible wrapped types are (de)serializable by bserializer.
      *
      * @tparam _T The type whose conformity is evaluated.
      */
@@ -415,21 +415,21 @@ namespace BSerializer {
     concept StdTimePoint = details::isStdTimePoint<_T>::value;
 
     /**
-     * @brief Concept to check if a type is serializable by BSerializer.
+     * @brief Concept to check if a type is serializable by bserializer.
      * 
      * A type satisfies Serializable if it conforms to any of the following constraints:
-     * - It satisfies BSerializer::Arithmetic (is integral or floating-point).
-     * - It satisfies BSerializer::SerializableStdPair (is any std::pair<..., ...> and the types of its values are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::SerializableStdTuple (is any std::tuple<...> and the types of its values are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::SerializableCollection (is a BSerializer::Collection and the types of its elements are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::SerializableMap (is a BSerializer::Map and the types of its keys and values are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::StdComplex (is any std::complex<...>).
-     * - It satisfies BSerializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::SerializableStdOptional (is any std::optional<...> and the conditionally wrapped type is [de]serializable by BSerializer).
-     * - It satisfies BSerializer::SerializableStdVariant (is any std::variant<...> and all the possible wrapped types are [de]serializable by BSerializer).
-     * - It satisfies BSerializer::StdDuration (is any std::chrono::duration<..., ....> with valid template arguments).
-     * - It satisfies BSerializer::StdTimePoint (is any std::chrono::time_point<..., ....> with valid template arguments).
-     * - It satisfies BSerializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with BSerializer).
+     * - It satisfies bserializer::Arithmetic (is integral or floating-point).
+     * - It satisfies bserializer::SerializableStdPair (is any std::pair<..., ...> and the types of its values are [de]serializable by bserializer).
+     * - It satisfies bserializer::SerializableStdTuple (is any std::tuple<...> and the types of its values are [de]serializable by bserializer).
+     * - It satisfies bserializer::SerializableCollection (is a bserializer::Collection and the types of its elements are [de]serializable by bserializer).
+     * - It satisfies bserializer::SerializableMap (is a bserializer::Map and the types of its keys and values are [de]serializable by bserializer).
+     * - It satisfies bserializer::StdComplex (is any std::complex<...>).
+     * - It satisfies bserializer::SerializableStdArray (is any std::array<..., ...> and the types of its elements are [de]serializable by bserializer).
+     * - It satisfies bserializer::SerializableStdOptional (is any std::optional<...> and the conditionally wrapped type is [de]serializable by bserializer).
+     * - It satisfies bserializer::SerializableStdVariant (is any std::variant<...> and all the possible wrapped types are [de]serializable by bserializer).
+     * - It satisfies bserializer::StdDuration (is any std::chrono::duration<..., ....> with valid template arguments).
+     * - It satisfies bserializer::StdTimePoint (is any std::chrono::time_point<..., ....> with valid template arguments).
+     * - It satisfies bserializer::BuiltInSerializable (has a preexisting [de]serializer that is compatible with bserializer).
      * 
      * @tparam _T The type whose conformity is evaluated.
      */
