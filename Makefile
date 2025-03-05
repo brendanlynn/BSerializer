@@ -28,6 +28,9 @@ TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.cpp, $(BUILD_DIR)/%.obj, $(TEST_SOURCES
 STATIC_LIB = $(BIN_DIR)/$(PROJECT_NAME).lib
 TEST_EXECUTABLE = $(BIN_DIR)/$(PROJECT_NAME)_tests.exe
 
+# Collect any .lib files in the lib/ directory
+LIB_FILES = $(wildcard $(LIB_DIR)/*.lib)
+
 # Default target
 all: $(if $(CPP_SOURCES), $(STATIC_LIB) $(SHARED_LIB),) $(TEST_EXECUTABLE)
 
@@ -36,7 +39,7 @@ $(BUILD_DIR)/%.obj: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Build static library (.lib)
-$(STATIC_LIB):  $(CPP_OBJECTS) | $(BIN_DIR)
+$(STATIC_LIB):  $(CPP_OBJECTS) $(LIB_FILES) | $(BIN_DIR)
 	lib /OUT:$@ $^
 
 # Compile tests
@@ -44,7 +47,7 @@ $(BUILD_DIR)/%.obj: $(TESTS_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Link test executable (depends on static library)
-$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(if $(CPP_SOURCES), $(STATIC_LIB),) | $(BIN_DIR)
+$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(if $(CPP_SOURCES), $(STATIC_LIB),) $(LIB_FILES) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ /Fe$@ $(LDFLAGS)
 
 # Run tests
