@@ -365,7 +365,7 @@ namespace bserializer {
                     new (variant) std::variant<_Ts...>(std::monostate());
                 }
                 else {
-                    new (variant) std::variant<_Ts...>(Deserialize<element_t>(data));
+                    new (variant) std::variant<_Ts...>(bserializer::Deserialize<element_t>(data));
                 }
             }
             else {
