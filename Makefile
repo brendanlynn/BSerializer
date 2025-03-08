@@ -11,7 +11,9 @@ LDFLAGS =
 # Directories
 SRC_DIR = src
 INCLUDE_DIR = include
-BUILD_DIR = build
+OBJ_DIR = obj
+OBJ_SRC_DIR = $(OBJ_DIR)/src
+OBJ_TESTS_DIR = $(OBJ_DIR)/tests
 BIN_DIR = bin
 TESTS_DIR = tests
 LIB_DIR = lib
@@ -21,21 +23,18 @@ CPP_SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 TEST_SOURCES = $(wildcard $(TESTS_DIR)/*.cpp)
 
 # Object files
-CPP_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.obj, $(CPP_SOURCES))
-TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.cpp, $(BUILD_DIR)/%.obj, $(TEST_SOURCES))
+CPP_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_SRC_DIR)/%.obj, $(CPP_SOURCES))
+TEST_OBJECTS = $(patsubst $(TESTS_DIR)/%.cpp, $(OBJ_TESTS_DIR)/%.obj, $(TEST_SOURCES))
 
 # Library output
 STATIC_LIB = $(BIN_DIR)/$(PROJECT_NAME).lib
 TEST_EXECUTABLE = $(BIN_DIR)/$(PROJECT_NAME)_tests.exe
 
-# Collect any .lib files in the lib/ directory
-LIB_FILES = $(wildcard $(LIB_DIR)/*.lib)
-
 # Default target
-all: $(if $(CPP_SOURCES), $(STATIC_LIB) $(SHARED_LIB),) $(if $(TEST_SOURCES), $(TEST_EXECUTABLE),)
+all: $(if $(CPP_SOURCES), $(STATIC_LIB),) $(if $(TEST_SOURCES), $(TEST_EXECUTABLE),)
 
 # Compile C++ source files
-$(BUILD_DIR)/%.obj: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+$(OBJ_SRC_DIR)/%.obj: $(SRC_DIR)/%.cpp | $(OBJ_SRC_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Build static library (.lib)
@@ -43,7 +42,7 @@ $(STATIC_LIB):  $(CPP_OBJECTS) $(LIB_FILES) | $(BIN_DIR)
 	lib /OUT:$@ $^
 
 # Compile tests
-$(BUILD_DIR)/%.obj: $(TESTS_DIR)/%.cpp | $(BUILD_DIR)
+$(OBJ_TESTS_DIR)/%.obj: $(TESTS_DIR)/%.cpp | $(OBJ_TESTS_DIR)
 	$(CXX) $(CXXFLAGS) /c $< /Fo$@
 
 # Link test executable (depends on static library)
@@ -62,15 +61,18 @@ check: $(TEST_EXECUTABLE)
 endif
 
 # Create output directories
-$(BUILD_DIR):
-	@mkdir $(BUILD_DIR)
-
+$(OBJ_DIR):
+	$(shell mkdir $(subst /,\,$(OBJ_DIR)))
+$(OBJ_SRC_DIR):
+	$(shell mkdir $(subst /,\,$(OBJ_SRC_DIR)))
+$(OBJ_TESTS_DIR):
+	$(shell mkdir $(subst /,\,$(OBJ_TESTS_DIR)))
 $(BIN_DIR):
-	@mkdir $(BIN_DIR)
+	$(shell mkdir $(subst /,\,$(BIN_DIR)))
 
 # Clean build files
 clean:
-	if exist $(BUILD_DIR) rd /s /q $(BUILD_DIR);
+	if exist $(OBJ_DIR) rd /s /q $(OBJ_DIR);
 	if exist $(BIN_DIR) rd /s /q $(BIN_DIR);
 
 .PHONY: all clean check
