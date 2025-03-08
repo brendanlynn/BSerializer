@@ -54,7 +54,7 @@ endif
 # Run tests
 ifeq ($(TEST_SOURCES),)
 check:
-	@echo "No tests found."
+	@echo No tests found.
 else
 check: $(TEST_EXECUTABLE)
 	$(TEST_EXECUTABLE)
